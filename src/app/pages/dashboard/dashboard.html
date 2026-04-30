@@ -1,0 +1,250 @@
+<!-- Loading -->
+@if (isLoading()) {
+  <div class="loading-screen">
+    <div class="spinner-lg"></div>
+    <p>Cargando tu dashboard...</p>
+  </div>
+}
+
+@if (!isLoading()) {
+<div class="dashboard">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header__left">
+      <span class="header__emoji">💰</span>
+      <div>
+        <h1>Hola, {{ userName }} 👋</h1>
+        <p>{{ monthName | titlecase }}</p>
+      </div>
+    </div>
+    <button class="btn-logout" (click)="logout()">Salir</button>
+  </header>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a routerLink="/dashboard"     routerLinkActive="nav__link--active" class="nav__link">Dashboard</a>
+    <a routerLink="/transactions"  routerLinkActive="nav__link--active" class="nav__link">Movimientos</a>
+    <a routerLink="/goal"          routerLinkActive="nav__link--active" class="nav__link">Meta</a>
+  </nav>
+
+  <main class="main">
+
+    <!-- BALANCE CARDS -->
+    <section class="cards">
+      <div class="card card--balance">
+        <span class="card__label">Balance del mes</span>
+        <span class="card__value" [class.negative]="totals.balance < 0">
+          {{ formatSol(totals.balance) }}
+        </span>
+      </div>
+      <div class="card card--income">
+        <span class="card__label">💚 Ingresos</span>
+        <span class="card__value">{{ formatSol(totals.income) }}</span>
+      </div>
+      <div class="card card--expense">
+        <span class="card__label">🔴 Gastos</span>
+        <span class="card__value">{{ formatSol(totals.expenses) }}</span>
+      </div>
+    </section>
+
+    <!-- REGLA 50/30/20 -->
+    <section class="section">
+      <h2 class="section__title">Regla 50 / 30 / 20</h2>
+      <div class="rule-cards">
+
+        <div class="rule-card">
+          <div class="rule-card__header">
+            <span>🏠 Necesidades</span>
+            <span class="rule-card__pct" [style.color]="barColor(byRule.need, limits.need)">
+              {{ pct(byRule.need, limits.need) }}%
+            </span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill"
+              [style.width.%]="pct(byRule.need, limits.need)"
+              [style.background]="barColor(byRule.need, limits.need)">
+            </div>
+          </div>
+          <div class="rule-card__amounts">
+            <span>{{ formatSol(byRule.need) }} gastado</span>
+            <span>límite {{ formatSol(limits.need) }}</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-card__header">
+            <span>🎬 Deseos</span>
+            <span class="rule-card__pct" [style.color]="barColor(byRule.want, limits.want)">
+              {{ pct(byRule.want, limits.want) }}%
+            </span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill"
+              [style.width.%]="pct(byRule.want, limits.want)"
+              [style.background]="barColor(byRule.want, limits.want)">
+            </div>
+          </div>
+          <div class="rule-card__amounts">
+            <span>{{ formatSol(byRule.want) }} gastado</span>
+            <span>límite {{ formatSol(limits.want) }}</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-card__header">
+            <span>🐷 Ahorro</span>
+            <span class="rule-card__pct" [style.color]="barColor(byRule.saving, limits.saving)">
+              {{ pct(byRule.saving, limits.saving) }}%
+            </span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill"
+              [style.width.%]="pct(byRule.saving, limits.saving)"
+              [style.background]="barColor(byRule.saving, limits.saving)">
+            </div>
+          </div>
+          <div class="rule-card__amounts">
+            <span>{{ formatSol(byRule.saving) }} ahorrado</span>
+            <span>meta {{ formatSol(limits.saving) }}</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- META DE AHORRO (mini) -->
+    @if (goal()) {
+    <section class="section">
+      <h2 class="section__title">🎯 Meta S/ 10,000</h2>
+      <div class="goal-card">
+        <div class="goal-card__top">
+          <div>
+            <p class="goal-card__current">{{ formatSol(goal()!.current_amount) }}</p>
+            <p class="goal-card__label">de {{ formatSol(goal()!.target_amount) }}</p>
+          </div>
+          <div class="goal-card__right">
+            <p class="goal-card__months">{{ goal()!.months_to_goal ?? 0 }} meses</p>
+            <p class="goal-card__label">estimado: {{ estimatedDate }}</p>
+          </div>
+        </div>
+        <div class="progress-track progress-track--lg">
+          <div class="progress-fill progress-fill--green"
+            [style.width.%]="goalProgress">
+          </div>
+        </div>
+        <div class="goal-card__pct">{{ goalProgress.toFixed(1) }}% completado</div>
+        <a routerLink="/goal" class="btn-link-sm">Ver detalles →</a>
+      </div>
+    </section>
+    }
+
+    <!-- GASTOS POR CATEGORÍA -->
+    @if (byCategory.length > 0) {
+    <section class="section">
+      <h2 class="section__title">📊 Gastos por categoría</h2>
+      <div class="category-list">
+        @for (cat of byCategory; track cat.name) {
+          <div class="category-row">
+            <span class="category-row__icon">{{ cat.icon }}</span>
+            <span class="category-row__name">{{ cat.name }}</span>
+            <span class="category-row__amount">{{ formatSol(cat.total) }}</span>
+          </div>
+        }
+      </div>
+    </section>
+    }
+
+    <!-- ÚLTIMAS TRANSACCIONES -->
+    <section class="section">
+      <div class="section__titlebar">
+        <h2 class="section__title">Últimos movimientos</h2>
+        <a routerLink="/transactions" class="btn-link-sm">Ver todos →</a>
+      </div>
+      @if (transactions().length === 0) {
+        <p class="empty">Sin movimientos este mes. ¡Registra el primero!</p>
+      }
+      <div class="tx-list">
+        @for (tx of transactions().slice(0, 5); track tx.id) {
+          <div class="tx-row">
+            <span class="tx-row__icon">{{ tx.category?.icon ?? '💰' }}</span>
+            <div class="tx-row__info">
+              <span class="tx-row__desc">{{ tx.description ?? tx.category?.name ?? 'Sin descripción' }}</span>
+              <span class="tx-row__date">{{ tx.date }}</span>
+            </div>
+            <span class="tx-row__amount" [class.income]="tx.amount > 0" [class.expense]="tx.amount < 0">
+              {{ tx.amount > 0 ? '+' : '' }}{{ formatSol(tx.amount) }}
+            </span>
+          </div>
+        }
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FAB: Botón flotante + -->
+  <button class="fab" (click)="openQuickEntry()" title="Agregar movimiento">+</button>
+
+</div>
+}
+
+<!-- QUICK ENTRY MODAL -->
+@if (showQuickEntry()) {
+<div class="overlay" (click)="closeQuickEntry()">
+  <div class="modal" (click)="$event.stopPropagation()">
+
+    <div class="modal__header">
+      <h3>Nuevo movimiento</h3>
+      <button (click)="closeQuickEntry()" class="modal__close">✕</button>
+    </div>
+
+    <!-- Tipo: Gasto / Ingreso -->
+    <div class="type-toggle">
+      <button [class.active]="isExpense" (click)="setSign('expense')">🔴 Gasto</button>
+      <button [class.active]="!isExpense" (click)="setSign('income')">💚 Ingreso</button>
+    </div>
+
+    <!-- Display del monto -->
+    <div class="numpad__display" [class.expense]="isExpense" [class.income]="!isExpense && quickAmount !== ''">
+      {{ quickAmount || '0.00' }}
+    </div>
+
+    <!-- Teclado numérico -->
+    <div class="numpad">
+      @for (key of ['7','8','9','4','5','6','1','2','3','.','0','⌫']; track key) {
+        <button class="numpad__key" (click)="key === '⌫' ? deleteDigit() : appendDigit(key)">
+          {{ key }}
+        </button>
+      }
+    </div>
+
+    <!-- Descripción -->
+    <input
+      class="modal__input"
+      type="text"
+      [(ngModel)]="quickDescription"
+      placeholder="Descripción (opcional)"
+    />
+
+    <!-- Categoría -->
+    <select class="modal__input" [(ngModel)]="quickCategoryId">
+      <option value="">Sin categoría</option>
+      @for (cat of categories(); track cat.id) {
+        <option [value]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
+      }
+    </select>
+
+    <!-- Fecha -->
+    <input class="modal__input" type="date" [(ngModel)]="quickDate" />
+
+    @if (quickError) {
+      <p class="modal__error">{{ quickError }}</p>
+    }
+
+    <button class="btn-primary" (click)="saveQuickEntry()" [disabled]="quickLoading">
+      @if (quickLoading) { <span class="spinner"></span> } @else { Guardar }
+    </button>
+
+  </div>
+</div>
+}

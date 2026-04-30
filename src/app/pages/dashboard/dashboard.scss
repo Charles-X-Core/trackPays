@@ -1,0 +1,434 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #0f1117;
+  color: #64748b;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.dashboard {
+  min-height: 100vh;
+  background: #0f1117;
+  font-family: 'DM Sans', sans-serif;
+  color: #f1f5f9;
+  padding-bottom: 6rem;
+}
+
+// ─── Header ──────────────────────────────────────────
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  &__emoji { font-size: 1.75rem; }
+
+  h1 { font-size: 1.1rem; font-weight: 600; color: #f1f5f9; }
+  p  { font-size: 0.78rem; color: #64748b; text-transform: capitalize; }
+}
+
+.btn-logout {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #94a3b8;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: background 0.2s;
+  &:hover { background: rgba(255,255,255,0.09); }
+}
+
+// ─── Nav ─────────────────────────────────────────────
+.nav {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+
+  &__link {
+    color: #64748b;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.4rem 0.9rem;
+    border-radius: 8px;
+    transition: background 0.2s, color 0.2s;
+    &:hover { color: #f1f5f9; background: rgba(255,255,255,0.05); }
+    &--active { color: #a5b4fc; background: rgba(99,102,241,0.12); }
+  }
+}
+
+// ─── Main ────────────────────────────────────────────
+.main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+// ─── Balance cards ───────────────────────────────────
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: #16181f;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  &__label { font-size: 0.78rem; color: #64748b; }
+  &__value { font-size: 1.25rem; font-weight: 700; color: #f1f5f9; }
+
+  &--balance { grid-column: 1 / -1; background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.2); }
+  &--income  .card__value { color: #4ade80; }
+  &--expense .card__value { color: #f87171; }
+
+  .negative { color: #f87171; }
+}
+
+// ─── Secciones ───────────────────────────────────────
+.section {
+  &__title    { font-size: 1rem; font-weight: 600; color: #e2e8f0; margin-bottom: 1rem; }
+  &__titlebar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+}
+
+.btn-link-sm {
+  color: #6366f1;
+  font-size: 0.82rem;
+  text-decoration: none;
+  font-weight: 500;
+  &:hover { text-decoration: underline; }
+}
+
+// ─── Regla 50/30/20 ──────────────────────────────────
+.rule-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rule-card {
+  background: #16181f;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #cbd5e1;
+    margin-bottom: 0.6rem;
+  }
+
+  &__pct { font-weight: 700; }
+
+  &__amounts {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.4rem;
+  }
+}
+
+// ─── Progress bars ───────────────────────────────────
+.progress-track {
+  height: 7px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 99px;
+  overflow: hidden;
+
+  &--lg { height: 10px; margin: 0.75rem 0 0.4rem; }
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: #6366f1;
+  transition: width 0.6s ease;
+
+  &--green { background: #4ade80; }
+}
+
+// ─── Goal card ───────────────────────────────────────
+.goal-card {
+  background: #16181f;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 1.25rem;
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  &__current { font-size: 1.5rem; font-weight: 700; color: #4ade80; }
+  &__months  { font-size: 1.1rem; font-weight: 700; color: #a5b4fc; text-align: right; }
+  &__label   { font-size: 0.75rem; color: #64748b; }
+  &__pct     { font-size: 0.8rem; color: #64748b; text-align: right; }
+}
+
+// ─── Categorías ──────────────────────────────────────
+.category-list {
+  background: #16181f;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  &:last-child { border-bottom: none; }
+
+  &__icon   { font-size: 1.2rem; }
+  &__name   { flex: 1; font-size: 0.9rem; color: #cbd5e1; }
+  &__amount { font-weight: 600; color: #f87171; font-size: 0.9rem; }
+}
+
+// ─── Transacciones ───────────────────────────────────
+.tx-list {
+  background: #16181f;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tx-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  &:last-child { border-bottom: none; }
+
+  &__icon  { font-size: 1.3rem; }
+  &__info  { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; }
+  &__desc  { font-size: 0.88rem; color: #e2e8f0; }
+  &__date  { font-size: 0.73rem; color: #475569; }
+  &__amount {
+    font-weight: 600;
+    font-size: 0.9rem;
+    &.income  { color: #4ade80; }
+    &.expense { color: #f87171; }
+  }
+}
+
+.empty {
+  text-align: center;
+  color: #475569;
+  font-size: 0.875rem;
+  padding: 2rem;
+  background: #16181f;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+// ─── FAB ─────────────────────────────────────────────
+.fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #6366f1;
+  color: #fff;
+  font-size: 1.75rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.15s;
+  line-height: 1;
+  &:hover  { background: #4f46e5; }
+  &:active { transform: scale(0.93); }
+}
+
+// ─── Modal / Overlay ─────────────────────────────────
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+
+  @media (min-width: 600px) { align-items: center; }
+}
+
+.modal {
+  background: #16181f;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+
+  @media (min-width: 600px) { border-radius: 20px; }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h3 { font-size: 1.1rem; font-weight: 600; }
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    &:hover { color: #f1f5f9; }
+  }
+
+  &__input {
+    background: #0f1117;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    color: #f1f5f9;
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+    width: 100%;
+    &:focus { border-color: #6366f1; }
+    option { background: #16181f; }
+  }
+
+  &__error { color: #f87171; font-size: 0.82rem; }
+}
+
+// ─── Type toggle ─────────────────────────────────────
+.type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+
+  button {
+    padding: 0.6rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    color: #64748b;
+    font-size: 0.875rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.active {
+      background: rgba(99,102,241,0.15);
+      border-color: #6366f1;
+      color: #a5b4fc;
+      font-weight: 600;
+    }
+  }
+}
+
+// ─── Numpad ──────────────────────────────────────────
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+
+  &__display {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    padding: 0.5rem;
+    letter-spacing: 0.02em;
+    color: #64748b;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+
+    &.expense { color: #f87171; }
+    &.income  { color: #4ade80; }
+  }
+
+  &__key {
+    padding: 0.9rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    color: #e2e8f0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+    &:hover  { background: rgba(255,255,255,0.1); }
+    &:active { background: rgba(99,102,241,0.2); }
+  }
+}
+
+// ─── Spinner ─────────────────────────────────────────
+.spinner, .spinner-lg {
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.spinner    { width: 18px; height: 18px; }
+.spinner-lg { width: 36px; height: 36px; border-width: 3px; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ─── Btn primary ─────────────────────────────────────
+.btn-primary {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:hover:not(:disabled) { background: #4f46e5; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}

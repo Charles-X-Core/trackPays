@@ -1,12 +1,18 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { Auth } from './core/services/auth';
+import { Supabase } from './core/services/supabase';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.scss'
+  template: `<router-outlet />`
 })
-export class App {
-  protected readonly title = signal('trackPays2.0');
+export class App implements OnInit {
+  private auth = inject(Auth);
+
+  ngOnInit() {
+    
+  }
+
 }

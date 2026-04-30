@@ -1,0 +1,94 @@
+<div class="login-wrapper">
+
+  <div class="card">
+
+    <!-- Header -->
+    <div class="card__header">
+      <div class="logo">💰</div>
+      <h1>{{ isRegister() ? 'Crear cuenta' : 'Bienvenido' }}</h1>
+      <p>{{ isRegister() ? 'Empieza a controlar tus finanzas' : 'Ingresa a tu rastreador de gastos' }}</p>
+    </div>
+
+    <!-- Formulario -->
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="card__body">
+
+      <!-- Nombre (solo registro) -->
+      @if (isRegister()) {
+        <div class="field" @fadeIn>
+          <label for="fullName">Nombre completo</label>
+          <input
+            id="fullName"
+            type="text"
+            formControlName="fullName"
+            placeholder="Juan Pérez"
+            autocomplete="name"
+          />
+        </div>
+      }
+
+      <!-- Email -->
+      <div class="field">
+        <label for="email">Correo electrónico</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="tu@correo.com"
+          autocomplete="email"
+          [class.field--error]="form.get('email')?.invalid && form.get('email')?.touched"
+        />
+        @if (form.get('email')?.invalid && form.get('email')?.touched) {
+          <span class="field__error">Ingresa un correo válido</span>
+        }
+      </div>
+
+      <!-- Contraseña -->
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <div class="field__password">
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="Mínimo 6 caracteres"
+            autocomplete="current-password"
+            [class.field--error]="form.get('password')?.invalid && form.get('password')?.touched"
+          />
+          <button type="button" class="toggle-pw" (click)="togglePassword()">
+            {{ showPassword() ? '🙈' : '👁️' }}
+          </button>
+        </div>
+        @if (form.get('password')?.invalid && form.get('password')?.touched) {
+          <span class="field__error">Mínimo 6 caracteres</span>
+        }
+      </div>
+
+      <!-- Mensaje de error / info -->
+      @if (errorMsg()) {
+        <div class="alert" [class.alert--info]="errorMsg().includes('correo')">
+          {{ errorMsg() }}
+        </div>
+      }
+
+      <!-- Botón principal -->
+      <button type="submit" class="btn-primary" [disabled]="isLoading()">
+        @if (isLoading()) {
+          <span class="spinner"></span>
+        } @else {
+          {{ isRegister() ? 'Crear cuenta' : 'Ingresar' }}
+        }
+      </button>
+
+    </form>
+
+    <!-- Footer toggle -->
+    <div class="card__footer">
+      <span>{{ isRegister() ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?' }}</span>
+      <button type="button" class="btn-link" (click)="toggleMode()">
+        {{ isRegister() ? 'Iniciar sesión' : 'Regístrate' }}
+      </button>
+    </div>
+
+  </div>
+
+</div>

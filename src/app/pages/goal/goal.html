@@ -1,0 +1,184 @@
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="header">
+    <a routerLink="/dashboard" class="btn-back">← Volver</a>
+    <h1>Meta de ahorro</h1>
+    <span></span>
+  </header>
+
+  <!-- LOADING -->
+  @if (isLoading()) {
+    <div class="loading"><div class="spinner-lg"></div></div>
+  }
+
+  @if (!isLoading() && goal()) {
+  <main class="main">
+
+    <!-- TOAST SUCCESS -->
+    @if (successMsg()) {
+      <div class="toast">✅ {{ successMsg() }}</div>
+    }
+
+    <!-- HERO: progreso principal -->
+    <section class="hero">
+      <div class="hero__amounts">
+        <div>
+          <p class="hero__current">{{ formatSol(goal()!.current_amount) }}</p>
+          <p class="hero__label">ahorrado hasta hoy</p>
+        </div>
+        <div class="hero__right">
+          <p class="hero__target">{{ formatSol(goal()!.target_amount) }}</p>
+          <p class="hero__label">meta total</p>
+        </div>
+      </div>
+
+      <!-- Barra de progreso -->
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="progress"></div>
+        @for (m of milestonesWithStatus; track m.amount) {
+          <div
+            class="milestone-marker"
+            [style.left.%]="(m.amount / goal()!.target_amount) * 100"
+            [class.reached]="m.reached"
+            [title]="m.label">
+          </div>
+        }
+      </div>
+
+      <div class="hero__pct">{{ progress.toFixed(1) }}% completado</div>
+      <p class="hero__remaining">
+        Faltan <strong>{{ formatSol(goal()!.target_amount - goal()!.current_amount) }}</strong> para tu meta
+      </p>
+    </section>
+
+    <!-- STATS CARDS -->
+    <section class="stats">
+      <div class="stat-card">
+        <span class="stat-card__icon">📅</span>
+        <span class="stat-card__value">{{ formatMonth(goal()!.months_to_goal ?? 0) }}</span>
+        <span class="stat-card__label">tiempo estimado</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__icon">📆</span>
+        <span class="stat-card__value">{{ estimatedDate }}</span>
+        <span class="stat-card__label">fecha estimada</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__icon">💰</span>
+        <span class="stat-card__value">{{ formatSol(goal()!.monthly_contribution) }}</span>
+        <span class="stat-card__label">aporte mensual</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__icon">💚</span>
+        <span class="stat-card__value">{{ formatSol(monthlyIncome) }}</span>
+        <span class="stat-card__label">ingresos este mes</span>
+      </div>
+    </section>
+
+    <!-- HITOS -->
+    <section class="section">
+      <h2 class="section__title">🏁 Hitos</h2>
+      <div class="milestones">
+        @for (m of milestonesWithStatus; track m.amount) {
+          <div class="milestone" [class.reached]="m.reached">
+            <span class="milestone__icon">{{ m.reached ? '✅' : '⬜' }}</span>
+            <span class="milestone__label">{{ m.label }}</span>
+            @if (m.reached) {
+              <span class="milestone__badge">¡Logrado!</span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ESCENARIOS -->
+    <section class="section">
+      <h2 class="section__title">📊 Escenarios de ahorro</h2>
+      <div class="scenarios">
+        @for (s of scenarios; track s.label) {
+          <div class="scenario" [class.active]="s.contribution === goal()!.monthly_contribution">
+            <div class="scenario__left">
+              <span class="scenario__label">{{ s.label }}</span>
+              <span class="scenario__contribution">{{ formatSol(s.contribution) }}/mes</span>
+            </div>
+            <span class="scenario__months">{{ formatMonth(s.months) }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- EDITAR CONTRIBUCIÓN -->
+    <section class="section">
+      <h2 class="section__title">⚙️ Ajustar parámetros</h2>
+      <div class="edit-cards">
+
+        <!-- Contribución mensual -->
+        <div class="edit-card">
+          <div class="edit-card__info">
+            <span class="edit-card__label">Aporte mensual</span>
+            <span class="edit-card__value">{{ formatSol(goal()!.monthly_contribution) }}</span>
+          </div>
+          <button class="btn-edit" (click)="showEditContribution.set(!showEditContribution())">
+            {{ showEditContribution() ? 'Cancelar' : 'Editar' }}
+          </button>
+        </div>
+
+        @if (showEditContribution()) {
+          <div class="edit-form">
+            <input
+              type="number"
+              class="form-input"
+              [(ngModel)]="newContribution"
+              placeholder="240"
+              min="1"
+            />
+            @if (errorMsg()) { <p class="error">{{ errorMsg() }}</p> }
+            <button class="btn-primary" (click)="saveContribution()" [disabled]="isSaving()">
+              @if (isSaving()) { <span class="spinner"></span> } @else { Guardar y recalcular }
+            </button>
+          </div>
+        }
+
+        <!-- Meta total -->
+        <div class="edit-card">
+          <div class="edit-card__info">
+            <span class="edit-card__label">Meta total</span>
+            <span class="edit-card__value">{{ formatSol(goal()!.target_amount) }}</span>
+          </div>
+          <button class="btn-edit" (click)="showEditTarget.set(!showEditTarget())">
+            {{ showEditTarget() ? 'Cancelar' : 'Editar' }}
+          </button>
+        </div>
+
+        @if (showEditTarget()) {
+          <div class="edit-form">
+            <input
+              type="number"
+              class="form-input"
+              [(ngModel)]="newTarget"
+              placeholder="10000"
+              min="1"
+            />
+            @if (errorMsg()) { <p class="error">{{ errorMsg() }}</p> }
+            <button class="btn-primary" (click)="saveTarget()" [disabled]="isSaving()">
+              @if (isSaving()) { <span class="spinner"></span> } @else { Guardar }
+            </button>
+          </div>
+        }
+
+      </div>
+    </section>
+
+  </main>
+  }
+
+  <!-- Sin meta creada -->
+  @if (!isLoading() && !goal()) {
+    <div class="empty">
+      <p>😶 No tienes una meta activa.</p>
+      <p class="empty__sub">Recarga la página — el sistema la crea automáticamente.</p>
+    </div>
+  }
+
+</div>
