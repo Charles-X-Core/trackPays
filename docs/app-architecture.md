@@ -38,6 +38,17 @@ La arquitectura refleja la filosofía del producto: **claridad sobre complejidad
 
 ---
 
+## Integración con Firestore
+
+> **Nota**: La arquitectura de datos en Firestore está documentada en `firestore-architecture.md`. Esta define la estructura completa de datos, incluyendo:
+> - Months como unidad organizativa primaria
+> - MonthlyFinancialState como estado central
+> - Sistema de analytics e insights
+> - Budgeting real
+> - Arquitectura escalable para el futuro
+
+---
+
 ## Dominio 1: Core Domain (Fundamentos)
 
 El Core Domain contiene la infraestructura fundamental que hace funcionar la aplicación. Es la base sobre la que se construyen todos los features.

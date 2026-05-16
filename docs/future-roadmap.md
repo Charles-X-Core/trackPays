@@ -50,8 +50,10 @@ FASE 5 (Q3-Q4 2026)   │ Scale & Enterprise
 | Entregable | Descripción | Prioridad |
 |------------|-------------|-----------|
 | **Firebase Migration** | Migrar de Supabase a Firebase Auth + Firestore | Critical |
-| **Firestore Schema** | Diseño de schema optimizado para queries | Critical |
+| **Firestore Schema** | Arquitectura Firestore completa (ver `firestore-architecture.md`) | Critical |
 | **Firebase Security Rules** | Reglas de acceso y validación | Critical |
+| **Monthly Financial State** | Implementar estado financiero mensual pre-calculado | Critical |
+| **Analytics + Insights** | Sistema de insights automáticos por mes | High |
 | **Error Handling System** | Sistema robusto de manejo de errores | High |
 
 ### Entregables de UX Foundation

@@ -334,6 +334,12 @@ data/
 
 **Nota**: Esta capa es necesaria cuando se migre a Firebase. Proporciona abstracción entre el código de negocio y la implementación de base de datos.
 
+**Arquitectura de Datos**: La estructura completa de Firestore está documentada en `firestore-architecture.md`, que incluye:
+- Months como estructura organizativa (no solo transactions)
+- MonthlyFinancialState pre-calculado para rendimiento
+- Sistema de analytics e insights persistidos
+- Budgeting completo con alertas
+
 ---
 
 ## Estrategia de Standalone Components
