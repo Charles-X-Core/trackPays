@@ -84,7 +84,7 @@ export class TransactionsComponent implements OnInit {
     this.editingTx.set(tx);
     this.editAmount      = String(tx.amount);
     this.editDescription = tx.description ?? '';
-    this.editCategoryId  = tx.category_id ?? '';
+    this.editCategoryId  = tx.categoryId ?? '';
     this.editDate        = tx.date;
     this.modalError.set('');
     this.showModal.set(true);
@@ -108,8 +108,9 @@ export class TransactionsComponent implements OnInit {
       const payload: Partial<TransactionPayload> = {
         amount,
         description: this.editDescription,
-        category_id: this.editCategoryId || null,
-        date:        this.editDate
+        categoryId: this.editCategoryId || null,
+        date: this.editDate,
+        type: amount < 0 ? 'expense' : 'income'
       };
       await this.transactionService.update(this.editingTx()!.id, payload);
       this.closeModal();

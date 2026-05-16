@@ -120,11 +120,11 @@
       <div class="goal-card">
         <div class="goal-card__top">
           <div>
-            <p class="goal-card__current">{{ formatSol(goal()!.current_amount) }}</p>
-            <p class="goal-card__label">de {{ formatSol(goal()!.target_amount) }}</p>
+            <p class="goal-card__current">{{ formatSol(goal()!.currentAmount) }}</p>
+            <p class="goal-card__label">de {{ formatSol(goal()!.targetAmount) }}</p>
           </div>
           <div class="goal-card__right">
-            <p class="goal-card__months">{{ goal()!.months_to_goal ?? 0 }} meses</p>
+            <p class="goal-card__months">{{ goal()!.monthsToGoal ?? 0 }} meses</p>
             <p class="goal-card__label">estimado: {{ estimatedDate }}</p>
           </div>
         </div>

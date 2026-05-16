@@ -24,11 +24,11 @@
     <section class="hero">
       <div class="hero__amounts">
         <div>
-          <p class="hero__current">{{ formatSol(goal()!.current_amount) }}</p>
+          <p class="hero__current">{{ formatSol(goal()!.currentAmount) }}</p>
           <p class="hero__label">ahorrado hasta hoy</p>
         </div>
         <div class="hero__right">
-          <p class="hero__target">{{ formatSol(goal()!.target_amount) }}</p>
+          <p class="hero__target">{{ formatSol(goal()!.targetAmount) }}</p>
           <p class="hero__label">meta total</p>
         </div>
       </div>
@@ -39,7 +39,7 @@
         @for (m of milestonesWithStatus; track m.amount) {
           <div
             class="milestone-marker"
-            [style.left.%]="(m.amount / goal()!.target_amount) * 100"
+            [style.left.%]="(m.amount / goal()!.targetAmount) * 100"
             [class.reached]="m.reached"
             [title]="m.label">
           </div>
@@ -48,7 +48,7 @@
 
       <div class="hero__pct">{{ progress.toFixed(1) }}% completado</div>
       <p class="hero__remaining">
-        Faltan <strong>{{ formatSol(goal()!.target_amount - goal()!.current_amount) }}</strong> para tu meta
+        Faltan <strong>{{ formatSol(goal()!.targetAmount - goal()!.currentAmount) }}</strong> para tu meta
       </p>
     </section>
 
@@ -56,7 +56,7 @@
     <section class="stats">
       <div class="stat-card">
         <span class="stat-card__icon">📅</span>
-        <span class="stat-card__value">{{ formatMonth(goal()!.months_to_goal ?? 0) }}</span>
+        <span class="stat-card__value">{{ formatMonth(goal()!.monthsToGoal ?? 0) }}</span>
         <span class="stat-card__label">tiempo estimado</span>
       </div>
       <div class="stat-card">
@@ -66,7 +66,7 @@
       </div>
       <div class="stat-card">
         <span class="stat-card__icon">💰</span>
-        <span class="stat-card__value">{{ formatSol(goal()!.monthly_contribution) }}</span>
+        <span class="stat-card__value">{{ formatSol(goal()!.monthlyContribution) }}</span>
         <span class="stat-card__label">aporte mensual</span>
       </div>
       <div class="stat-card">
@@ -97,7 +97,7 @@
       <h2 class="section__title">📊 Escenarios de ahorro</h2>
       <div class="scenarios">
         @for (s of scenarios; track s.label) {
-          <div class="scenario" [class.active]="s.contribution === goal()!.monthly_contribution">
+          <div class="scenario" [class.active]="s.contribution === goal()!.monthlyContribution">
             <div class="scenario__left">
               <span class="scenario__label">{{ s.label }}</span>
               <span class="scenario__contribution">{{ formatSol(s.contribution) }}/mes</span>
@@ -117,7 +117,7 @@
         <div class="edit-card">
           <div class="edit-card__info">
             <span class="edit-card__label">Aporte mensual</span>
-            <span class="edit-card__value">{{ formatSol(goal()!.monthly_contribution) }}</span>
+            <span class="edit-card__value">{{ formatSol(goal()!.monthlyContribution) }}</span>
           </div>
           <button class="btn-edit" (click)="showEditContribution.set(!showEditContribution())">
             {{ showEditContribution() ? 'Cancelar' : 'Editar' }}
@@ -144,7 +144,7 @@
         <div class="edit-card">
           <div class="edit-card__info">
             <span class="edit-card__label">Meta total</span>
-            <span class="edit-card__value">{{ formatSol(goal()!.target_amount) }}</span>
+            <span class="edit-card__value">{{ formatSol(goal()!.targetAmount) }}</span>
           </div>
           <button class="btn-edit" (click)="showEditTarget.set(!showEditTarget())">
             {{ showEditTarget() ? 'Cancelar' : 'Editar' }}

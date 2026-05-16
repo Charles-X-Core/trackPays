@@ -52,11 +52,11 @@ export class GoalComponent implements OnInit {
   }
 
   get estimatedDate(): string {
-    return this.goal() ? this.goalService.calcEstimatedDate(this.goal()!.months_to_goal) : '';
+    return this.goal() ? this.goalService.calcEstimatedDate(this.goal()!.monthsToGoal) : '';
   }
 
   get milestonesWithStatus(): Milestone[] {
-    const current = this.goal()?.current_amount ?? 0;
+    const current = this.goal()?.currentAmount ?? 0;
     return this.milestones.map(m => ({ ...m, reached: current >= m.amount }));
   }
 
@@ -64,7 +64,7 @@ export class GoalComponent implements OnInit {
   projectMonths(contribution: number): number {
     const g = this.goal();
     if (!g || contribution <= 0) return 0;
-    const remaining = g.target_amount - g.current_amount;
+    const remaining = g.targetAmount - g.currentAmount;
     if (remaining <= 0) return 0;
     return Math.ceil(remaining / contribution);
   }
@@ -77,7 +77,7 @@ export class GoalComponent implements OnInit {
       { label: 'Ahorro mínimo (10%)',  contribution: 120,  months: this.projectMonths(120)  },
       { label: 'Regla 20%',           contribution: 240,  months: this.projectMonths(240)  },
       { label: 'Ahorro agresivo (30%)', contribution: 360, months: this.projectMonths(360)  },
-      { label: 'Contribución actual',  contribution: g.monthly_contribution, months: g.months_to_goal ?? 0 },
+      { label: 'Contribución actual',  contribution: g.monthlyContribution, months: g.monthsToGoal ?? 0 },
     ];
   }
 
@@ -100,8 +100,8 @@ export class GoalComponent implements OnInit {
       this.monthlyIncome = totals.income;
 
       if (goal) {
-        this.newContribution = goal.monthly_contribution;
-        this.newTarget       = goal.target_amount;
+        this.newContribution = goal.monthlyContribution;
+        this.newTarget       = goal.targetAmount;
       }
     } finally {
       this.isLoading.set(false);

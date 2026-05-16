@@ -1,18 +1,20 @@
 export interface Transaction {
-  id:          string;
-  user_id:     string;
-  category_id: string | null;
-  amount:      number;        // negativo = gasto, positivo = ingreso
+  id: string;
+  userId: string;
+  categoryId: string | null;
+  amount: number;
   description: string | null;
-  date:        string;
-  created_at:  string;
-  updated_at:  string;
-  category?:   { name: string; icon: string; rule_type: string }; // join
+  date: string;
+  type: 'income' | 'expense';
+  category?: { name: string; icon: string; rule_type: string };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TransactionPayload {
-  category_id: string | null;
-  amount:      number;
+  categoryId: string | null;
+  amount: number;
   description: string;
-  date:        string;
+  date: string;
+  type: 'income' | 'expense';
 }

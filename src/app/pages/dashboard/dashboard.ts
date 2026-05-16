@@ -54,7 +54,7 @@ export class DashboardComponent implements OnInit {
 
   get userName(): string {
     const user = this.authService.currentUser();
-    return user?.user_metadata?.['full_name']?.split(' ')[0] ?? 'Usuario';
+    return user?.displayName?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'Usuario';
   }
 
   get goalProgress(): number {
@@ -64,7 +64,7 @@ export class DashboardComponent implements OnInit {
 
   get estimatedDate(): string {
     const g = this.goal();
-    return g ? this.goalService.calcEstimatedDate(g.months_to_goal) : '';
+    return g ? this.goalService.calcEstimatedDate(g.monthsToGoal) : '';
   }
 
   // Porcentaje gastado de cada bucket 50/30/20
@@ -137,8 +137,9 @@ export class DashboardComponent implements OnInit {
       await this.transactionService.create({
         amount,
         description: this.quickDescription || (amount < 0 ? 'Gasto' : 'Ingreso'),
-        category_id: this.quickCategoryId || null,
-        date:        this.quickDate
+        categoryId: this.quickCategoryId || null,
+        date: this.quickDate,
+        type: amount < 0 ? 'expense' : 'income'
       });
       this.closeQuickEntry();
       await this.loadData();

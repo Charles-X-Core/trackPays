@@ -1,90 +1,69 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Session, User } from '@supabase/supabase-js';
-import { Supabase } from './supabase';
+import { onAuthStateChanged, User } from '@angular/fire/auth';
+import { FirebaseService } from './firebase';
 
 @Injectable({
   providedIn: 'root'
 })
 export class Auth {
+  private firebase = inject(FirebaseService);
+  private router = inject(Router);
 
-  private supabase = inject(Supabase).getClient();
-  private router   = inject(Router);
-
-  // Signals para que los componentes reaccionen al estado del usuario
-  currentUser   = signal<User | null>(null);
-  currentSession = signal<Session | null>(null);
-  isLoading     = signal<boolean>(true);
+  currentUser = signal<User | null>(null);
+  isLoading = signal<boolean>(true);
 
   constructor() {
     this.initAuthState();
   }
 
-  // Escucha cambios de sesión en tiempo real (login, logout, expiración)
-  private async initAuthState() {
-    const { data: { session } } = await this.supabase.auth.getSession();
-    this.currentSession.set(session);
-    this.currentUser.set(session?.user ?? null);
-    this.isLoading.set(false);
-
-    this.supabase.auth.onAuthStateChange((_event, session) => {
-      this.currentSession.set(session);
-      this.currentUser.set(session?.user ?? null);
+  private initAuthState() {
+    const auth = this.firebase.getAuth();
+    onAuthStateChanged(auth, (user) => {
+      this.currentUser.set(user);
+      this.isLoading.set(false);
     });
   }
 
-  // ─── Registro ────────────────────────────────────────────
   async signUp(email: string, password: string, fullName: string) {
-    const { data, error } = await this.supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } }
-    });
-
-    if (error) throw error;
-    return data;
-    // El trigger SQL crea el perfil automáticamente ✅
+    const result = await this.firebase.signUp(email, password);
+    
+    if (result.user) {
+      await this.firebase.createUserProfile(result.user.uid, {
+        fullName,
+        email,
+        monthlyIncome: 1200,
+        currency: 'PEN',
+        locale: 'es-PE',
+        createdAt: new Date().toISOString()
+      });
+    }
+    
+    return result;
   }
 
-  // ─── Login ───────────────────────────────────────────────
   async signIn(email: string, password: string) {
-    const { data, error } = await this.supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) throw error;
-
+    const result = await this.firebase.signIn(email, password);
     this.router.navigate(['/dashboard']);
-    return data;
+    return result;
   }
 
-  // ─── Logout ──────────────────────────────────────────────
   async signOut() {
-    const { error } = await this.supabase.auth.signOut();
-    if (error) throw error;
+    await this.firebase.signOut();
     this.router.navigate(['/login']);
   }
 
-  // ─── Crear perfil en tabla profiles ──────────────────────
-  private async createProfile(userId: string, fullName: string) {
-    const { error } = await this.supabase
-      .from('profiles')
-      .insert({
-        id: userId,
-        full_name: fullName,
-        monthly_income: 1200.00
-      });
-
-    if (error) throw error;
-  }
-
-  // ─── Helper para otros servicios ─────────────────────────
   getUserId(): string | null {
-    return this.currentUser()?.id ?? null;
+    return this.currentUser()?.uid ?? null;
   }
 
   isAuthenticated(): boolean {
     return this.currentUser() !== null;
+  }
+
+  async getUserProfile() {
+    const userId = this.getUserId();
+    if (!userId) return null;
+    return this.firebase.getUserProfile(userId);
   }
 }
