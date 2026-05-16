@@ -43,3 +43,12 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Firebase / Secrets
+firebase-service-account.json
+*.json
+!package.json
+!tsconfig.json
+!angular.json
+.env.local
+.env.*.local
