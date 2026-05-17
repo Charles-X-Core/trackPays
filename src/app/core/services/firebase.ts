@@ -465,4 +465,174 @@ export class FirebaseService {
       lastUpdated: new Date().toISOString()
     };
   }
+
+  // ============================================
+  // EXPENSES (NEW - Sistema Dual)
+  // ============================================
+
+  // Get all expenses for user
+  async getExpenses(userId: string): Promise<any[]> {
+    const q = query(
+      collection(this.firestore, `users/${userId}/expenses`),
+      orderBy('name')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Get active expenses
+  async getActiveExpenses(userId: string): Promise<any[]> {
+    const q = query(
+      collection(this.firestore, `users/${userId}/expenses`),
+      where('status', 'in', ['pending', 'partial']),
+      orderBy('dueDayOfMonth')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Get expenses by month
+  async getExpensesByMonth(userId: string, year: number, month: number): Promise<any[]> {
+    const monthId = `${year}-${String(month).padStart(2, '0')}`;
+    const q = query(
+      collection(this.firestore, `users/${userId}/months/${monthId}/expenses`),
+      orderBy('name')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Create expense
+  async createExpense(userId: string, data: any): Promise<any> {
+    const docRef = doc(collection(this.firestore, `users/${userId}/expenses`));
+    const now = new Date().toISOString();
+    const expenseData = {
+      ...data,
+      id: docRef.id,
+      userId,
+      actualAmount: 0,
+      status: 'pending',
+      createdAt: now,
+      updatedAt: now
+    };
+    await setDoc(docRef, expenseData);
+    return expenseData;
+  }
+
+  // Update expense
+  async updateExpense(userId: string, expenseId: string, data: any) {
+    const docRef = doc(this.firestore, `users/${userId}/expenses/${expenseId}`);
+    await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+  }
+
+  // Mark expense as paid
+  async markExpensePaid(userId: string, expenseId: string, paidAmount: number, paymentDate?: string) {
+    const docRef = doc(this.firestore, `users/${userId}/expenses/${expenseId}`);
+    await setDoc(docRef, {
+      actualAmount: paidAmount,
+      paymentDate: paymentDate || new Date().toISOString(),
+      status: 'paid',
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  }
+
+  // Cancel/deactivate expense
+  async cancelExpense(userId: string, expenseId: string) {
+    const docRef = doc(this.firestore, `users/${userId}/expenses/${expenseId}`);
+    await setDoc(docRef, {
+      status: 'cancelled',
+      isRecurring: false,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  }
+
+  // Calculate monthly expense summary
+  async calculateMonthlyExpenses(userId: string, year: number, month: number): Promise<any> {
+    const monthId = `${year}-${String(month).padStart(2, '0')}`;
+    const today = new Date();
+    const currentDay = today.getDate();
+    
+    // Get all active expenses
+    const allExpenses = await this.getActiveExpenses(userId);
+    
+    // Separate primordial and non-primordial
+    const primordial = allExpenses.filter((e: any) => e.isPrimordial);
+    const nonPrimordial = allExpenses.filter((e: any) => !e.isPrimordial);
+    
+    // Calculate totals
+    const totalBudgeted = allExpenses.reduce((sum: number, e: any) => sum + (e.budgetedAmount || 0), 0);
+    const totalActual = allExpenses.reduce((sum: number, e: any) => sum + (e.actualAmount || 0), 0);
+    
+    const primordialBudgeted = primordial.reduce((sum: number, e: any) => sum + (e.budgetedAmount || 0), 0);
+    const primordialActual = primordial.reduce((sum: number, e: any) => sum + (e.actualAmount || 0), 0);
+    
+    const nonPrimordialBudgeted = nonPrimordial.reduce((sum: number, e: any) => sum + (e.budgetedAmount || 0), 0);
+    const nonPrimordialActual = nonPrimordial.reduce((sum: number, e: any) => sum + (e.actualAmount || 0), 0);
+    
+    // Get upcoming payments (next 7 days)
+    const upcomingPayments = allExpenses
+      .filter((e: any) => e.dueDayOfMonth && e.status !== 'paid' && e.status !== 'cancelled')
+      .map((e: any) => ({
+        expenseId: e.id,
+        name: e.name,
+        amount: e.budgetedAmount,
+        dueDate: e.dueDayOfMonth,
+        isOverdue: currentDay > e.dueDayOfMonth
+      }))
+      .sort((a: any, b: any) => a.dueDate - b.dueDate);
+    
+    // Check for alerts
+    const alerts: any[] = [];
+    allExpenses.forEach((e: any) => {
+      // Overdue
+      if (e.status === 'overdue') {
+        alerts.push({
+          type: 'overdue',
+          expenseId: e.id,
+          message: `${e.name} está vencido (Día ${e.dueDayOfMonth})`
+        });
+      }
+      // Budget exceeded
+      if (e.actualAmount > e.budgetedAmount) {
+        alerts.push({
+          type: 'budget_exceeded',
+          expenseId: e.id,
+          message: `${e.name} excedió el presupuesto: S/ ${e.actualAmount} vs S/ ${e.budgetedAmount}`
+        });
+      }
+      // Price change (subscription)
+      if (e.isSubscription && e.lastPrice && e.subscriptionPrice !== e.lastPrice) {
+        alerts.push({
+          type: 'price_change',
+          expenseId: e.id,
+          message: `${e.name} cambió de precio: S/ ${e.lastPrice} → S/ ${e.subscriptionPrice}`
+        });
+      }
+    });
+    
+    // By category breakdown
+    const byCategory = allExpenses.map((e: any) => ({
+      category: e.category,
+      name: e.name,
+      budgeted: e.budgetedAmount,
+      actual: e.actualAmount,
+      status: e.status
+    }));
+    
+    return {
+      monthId,
+      totalBudgeted,
+      totalActual,
+      primordialBudgeted,
+      primordialActual,
+      primordialCount: primordial.length,
+      nonPrimordialBudgeted,
+      nonPrimordialActual,
+      nonPrimordialCount: nonPrimordial.length,
+      byCategory,
+      upcomingPayments: upcomingPayments.slice(0, 5),
+      alerts,
+      lastUpdated: new Date().toISOString()
+    };
+  }
 }
