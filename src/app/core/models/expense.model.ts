@@ -1,5 +1,5 @@
 // ============================================
-// EXPENSE MODEL - Sistema Dual de Gastos
+// EXPENSE MODEL - Sistema Dual de Gastos (EXTENSIBLE)
 // ============================================
 
 // Categorías predefinidas de gastos primordiales
@@ -23,6 +23,35 @@ export type NonPrimordialCategory =
   | 'shopping'        // Compras diversas
   | 'subscriptions';  // Suscripciones varias
 
+// ============================================
+// CATEGORÍAS EXPANDIBLES (para futuro)
+// ============================================
+
+// Extendible: agregar más categorías aquí sin romper
+export type ExtendedPrimordialCategory = 
+  | PrimordialCategory
+  | 'insurance'           // Seguros específicos
+  | 'childcare'           // Cuidado de niños
+  | 'maintenance'         // Mantenimiento del hogar
+  | 'legal'               // Servicios legales
+  | 'taxes'               // Impuestos
+  | 'retirement'          // Aportes a jubilación adicional
+  | 'professional'        // Colegiaturas profesionales
+  | 'custom_primordial';  // Personalizado
+
+export type ExtendedNonPrimordialCategory = 
+  | NonPrimordialCategory
+  | 'gifts'               // Regalos
+  | 'sports'              // Deportes / Gimnasio
+  | 'hobbies'             // Pasatiempos
+  | 'technology'          // Tecnología / Gadgets
+  | 'beauty'              // Cuidado personal / Belleza
+  | 'home_improvement'    // Mejoras del hogar
+  | 'subscriptions_software' // Software / Apps
+  | 'bank_fees'          // Comisiones bancarias
+  | 'fines'              // Multas / Tarifas
+  | 'custom_non_primordial'; // Personalizado
+
 export type ExpenseCategory = PrimordialCategory | NonPrimordialCategory;
 
 // Estados de pago
@@ -32,7 +61,7 @@ export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'cancel
 export type ExpenseFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
 
 // ============================================
-// INTERFACE PRINCIPAL
+// INTERFACE PRINCIPAL (EXTENSIBLE)
 // ============================================
 
 export interface Expense {
@@ -78,8 +107,53 @@ export interface Expense {
   lastMonthAmount?: number;    // Del mes anterior
   dangerThreshold?: number;     // % que activa alerta
   
-  // Notas
+  // ============================================
+  // CAMPOS EXTENSIBLES (para futuro)
+  // ============================================
+  
+  // Detalle del proveedor (extensible)
+  providerDetails?: {
+    accountNumber?: string;      // Número de cuenta
+    contractNumber?: string;     // Número de contrato
+    planType?: string;          // Tipo de plan (ej: "Premium", "Básico")
+    billingCycle?: string;      // Ciclo de facturación
+    contactPhone?: string;      // Teléfono de contacto
+    website?: string;           // Web del proveedor
+  };
+  
+  // Deudas específicas (extensible)
+  debtDetails?: {
+    debtType: 'personal' | 'credit_card' | 'car_loan' | 'mortgage' | 'student_loan' | 'friend' | 'other';
+    creditorName: string;       // A quién debes
+    interestRate?: number;      // Tasa de interés
+    totalDebt?: number;         // Deuda total original
+    remainingPayments?: number; // Cuotas restantes
+    isConsolidated?: boolean;   // Si está consolidado
+  };
+  
+  // Servicios detallados (extensible)
+  serviceDetails?: {
+    serviceType?: string;       // Tipo de servicio específico
+    usage?: string;             // Consumo (kWh, m3, GB)
+    previousReading?: number;   // Lectura anterior (para variables)
+    currentReading?: number;    // Lectura actual
+    tariffType?: string;       // Tipo de tarifa
+  };
+  
+  // Tags personalizados (extensible)
+  tags?: string[];
+  
+  // Metadatos adicionales (extensible - key-value)
+  metadata?: Record<string, any>;
+  
+  // Notas estructuradas
   notes?: string;
+  
+  // ============================================
+  // Para sincronización y versionado
+  // ============================================
+  version?: number;
+  lastSyncedAt?: string;
   
   // Metadata
   createdAt: string;
