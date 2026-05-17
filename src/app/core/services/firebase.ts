@@ -265,14 +265,105 @@ export class FirebaseService {
   }
 
   // ============================================
-  // GOALS
+  // GOALS (Múltiples)
   // ============================================
+  
+  // Get all goals (legacy - single goal)
   async getGoal(userId: string) {
     const docRef = doc(this.firestore, `users/${userId}/goals/data`);
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
   }
 
+  // Get all goals (new - multiple)
+  async getGoals(userId: string) {
+    const q = query(
+      collection(this.firestore, `users/${userId}/goals`),
+      where('status', '==', 'active'),
+      orderBy('priority'),
+      orderBy('targetAmount', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Get all goals including completed/paused/cancelled
+  async getAllGoals(userId: string) {
+    const q = query(
+      collection(this.firestore, `users/${userId}/goals`),
+      orderBy('createdAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Get single goal
+  async getGoalById(userId: string, goalId: string) {
+    const docRef = doc(this.firestore, `users/${userId}/goals/${goalId}`);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+  }
+
+  // Create goal
+  async createGoal(userId: string, data: any): Promise<any> {
+    const docRef = doc(collection(this.firestore, `users/${userId}/goals`));
+    const now = new Date().toISOString();
+    const goalData = {
+      ...data,
+      id: docRef.id,
+      userId,
+      currentAmount: data.currentAmount || 0,
+      status: 'active',
+      isCompleted: false,
+      contributions: [],
+      createdAt: now,
+      updatedAt: now
+    };
+    await setDoc(docRef, goalData);
+    return goalData;
+  }
+
+  // Update goal
+  async updateGoal(userId: string, goalId: string, data: any) {
+    const docRef = doc(this.firestore, `users/${userId}/goals/${goalId}`);
+    await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+  }
+
+  // Add contribution to goal
+  async addContribution(userId: string, goalId: string, amount: number, note?: string) {
+    const goal = await this.getGoalById(userId, goalId);
+    if (!goal) throw new Error('Goal not found');
+    
+    const contribution = {
+      id: Date.now().toString(),
+      amount,
+      date: new Date().toISOString(),
+      note
+    };
+    
+    const newAmount = goal.currentAmount + amount;
+    const isCompleted = newAmount >= goal.targetAmount;
+    
+    const docRef = doc(this.firestore, `users/${userId}/goals/${goalId}`);
+    await setDoc(docRef, {
+      currentAmount: newAmount,
+      isCompleted,
+      status: isCompleted ? 'completed' : 'active',
+      contributions: [...(goal.contributions || []), contribution],
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  }
+
+  // Delete/deactivate goal
+  async deleteGoal(userId: string, goalId: string) {
+    const docRef = doc(this.firestore, `users/${userId}/goals/${goalId}`);
+    await setDoc(docRef, { 
+      status: 'cancelled',
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  }
+
+  // Legacy method
   async createOrUpdateGoal(userId: string, data: any) {
     const docRef = doc(this.firestore, `users/${userId}/goals/data`);
     return setDoc(docRef, data, { merge: true });
