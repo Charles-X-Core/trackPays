@@ -1,5 +1,16 @@
 # App Architecture — Track Pays
 
+> **⚠️ ESTADO: PARCIALMENTE DESACTUALIZADO**
+> 
+> Este documento describe la arquitectura general pero contiene referencias a Supabase.
+> Para la versión actual, ver:
+> - `backend-analysis-and-methodology.md` - Estado actual del backend
+> - `financial-system-master.md` - Sistema financiero completo
+> - `updated-roadmap.md` - Roadmap vigente
+>
+> ---
+> **Última actualización**: Mayo 2026
+
 ## Visión General
 
 La arquitectura de Track Pays se estructura como un **sistema de dominios interconectados**, no como una colección de páginas independientes. Cada dominio tiene responsabilidades claras, dependencias definidas, y comunica con otros dominios a través de interfaces bien establecidas.

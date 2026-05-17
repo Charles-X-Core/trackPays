@@ -1,5 +1,18 @@
 # Firestore Architecture — Track Pays
 
+> **⚠️ ESTADO: VISIÓN IDEAL (PARCIALMENTE IMPLEMENTADO)**
+> 
+> Este documento describe la estructura **IDEAL** de Firestore. Muestra la visión completa
+> del sistema financiero, pero **NO toda la estructura está implementada**.
+> 
+> **Para ver qué está implementado realmente, ver:**
+> - `backend-analysis-and-methodology.md` - Gap analysis detallado
+> - El código en `src/app/core/services/firebase.ts`
+>
+> ---
+> **Última actualización**: Mayo 2026
+> **Estado de implementación**: ~20% (profile, transactions, goals, categories básicos)
+
 ## Visión General
 
 Esta arquitectura redefine completamente cómo almacenamos y procesamos datos financieros en Track Pays. El objetivo es transformar de una app básica de control de gastos a un **sistema operativo financiero personal** moderno.

@@ -5,11 +5,11 @@
 
 ## Análisis de Documentos Existentes
 
-### Documentos Principales:
-1. **future-roadmap.md** - Roadmap original de 5 fases
-2. **onboarding-financial-profile.md** - Onboarding con preguntas detalladas
-3. **financial-system-master.md** - Sistema financiero completo (nuevo)
-4. **firestore-architecture.md** - Schema de base de datos
+### Documentos Principales (vigentes):
+1. **financial-system-master.md** - Sistema financiero completo ⭐
+2. **backend-analysis-and-methodology.md** - Análisis + metodología
+3. **firestore-architecture.md** - Schema de base de datos (visón ideal)
+4. **app-architecture.md** - Arquitectura general (parcial)
 5. **milestones/** - Progreso realizado
 
 ### Conflictos/ Gaps Identificados:
