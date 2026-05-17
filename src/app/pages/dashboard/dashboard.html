@@ -2,188 +2,224 @@
 @if (isLoading()) {
   <div class="loading-screen">
     <div class="spinner-lg"></div>
-    <p>Cargando tu dashboard...</p>
+    <p>Cargando...</p>
   </div>
 }
 
 @if (!isLoading()) {
 <div class="dashboard">
 
-  <!-- HEADER -->
+  <!-- HEADER - Minimal, integrated -->
   <header class="header">
-    <div class="header__left">
-      <span class="header__emoji">💰</span>
-      <div>
-        <h1>Hola, {{ userName }} 👋</h1>
-        <p>{{ monthName | titlecase }}</p>
-      </div>
+    <div class="header__brand">
+      <span class="header__logo">💰</span>
+      <span class="header__name">TrackPays</span>
     </div>
-    <button class="btn-logout" (click)="logout()">Salir</button>
+    
+    <div class="header__user">
+      <span class="header__greeting">Hola, {{ userName }}</span>
+      <button class="btn-icon" (click)="logout()" title="Salir">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
-  <!-- NAV -->
+  <!-- NAV - Strong, clear -->
   <nav class="nav">
-    <a routerLink="/dashboard"     routerLinkActive="nav__link--active" class="nav__link">Dashboard</a>
-    <a routerLink="/transactions"  routerLinkActive="nav__link--active" class="nav__link">Movimientos</a>
-    <a routerLink="/goal"          routerLinkActive="nav__link--active" class="nav__link">Meta</a>
+    <a routerLink="/dashboard" routerLinkActive="active" class="nav__item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      Dashboard
+    </a>
+    <a routerLink="/transactions" routerLinkActive="active" class="nav__item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+      Movimientos
+    </a>
+    <a routerLink="/goal" routerLinkActive="active" class="nav__item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="6"/>
+        <circle cx="12" cy="12" r="2"/>
+      </svg>
+      Meta
+    </a>
   </nav>
 
+  <!-- MAIN CONTENT -->
   <main class="main">
+    
+    <!-- MONTH LABEL -->
+    <div class="month-label">{{ monthName | titlecase }}</div>
 
-    <!-- BALANCE CARDS -->
-    <section class="cards">
-      <div class="card card--balance">
-        <span class="card__label">Balance del mes</span>
-        <span class="card__value" [class.negative]="totals.balance < 0">
-          {{ formatSol(totals.balance) }}
-        </span>
+    <!-- HERO: BALANCE -->
+    <section class="hero-balance">
+      <div class="hero-balance__label">Balance disponible</div>
+      <div class="hero-balance__amount" [class.negative]="totals.balance < 0">
+        {{ formatSol(totals.balance) }}
       </div>
-      <div class="card card--income">
-        <span class="card__label">💚 Ingresos</span>
-        <span class="card__value">{{ formatSol(totals.income) }}</span>
+      <div class="hero-balance__trend">
+        @if (totals.balance >= 0) {
+          <span class="trend trend--positive">↑ En positivo</span>
+        } @else {
+          <span class="trend trend--negative">↓ Gastando más de lo normal</span>
+        }
       </div>
-      <div class="card card--expense">
-        <span class="card__label">🔴 Gastos</span>
-        <span class="card__value">{{ formatSol(totals.expenses) }}</span>
+    </section>
+
+    <!-- QUICK STATS -->
+    <section class="stats-row">
+      <div class="stat-card stat-card--income">
+        <div class="stat-card__icon">↑</div>
+        <div class="stat-card__content">
+          <span class="stat-card__label">Ingresos</span>
+          <span class="stat-card__value">{{ formatSol(totals.income) }}</span>
+        </div>
+      </div>
+      
+      <div class="stat-card stat-card--expense">
+        <div class="stat-card__icon">↓</div>
+        <div class="stat-card__content">
+          <span class="stat-card__label">Gastos</span>
+          <span class="stat-card__value">{{ formatSol(totals.expenses) }}</span>
+        </div>
       </div>
     </section>
 
     <!-- REGLA 50/30/20 -->
     <section class="section">
-      <h2 class="section__title">Regla 50 / 30 / 20</h2>
-      <div class="rule-cards">
-
-        <div class="rule-card">
-          <div class="rule-card__header">
-            <span>🏠 Necesidades</span>
-            <span class="rule-card__pct" [style.color]="barColor(byRule.need, limits.need)">
-              {{ pct(byRule.need, limits.need) }}%
-            </span>
+      <div class="section__header">
+        <h2 class="section__title">Presupuesto</h2>
+        <span class="section__subtitle">50 / 30 / 20</span>
+      </div>
+      
+      <div class="budget-cards">
+        <!-- Necesidades -->
+        <div class="budget-card">
+          <div class="budget-card__top">
+            <span class="budget-card__icon">🏠</span>
+            <span class="budget-card__name">Necesidades</span>
           </div>
-          <div class="progress-track">
-            <div class="progress-fill"
-              [style.width.%]="pct(byRule.need, limits.need)"
-              [style.background]="barColor(byRule.need, limits.need)">
+          <div class="budget-card__bar">
+            <div class="progress">
+              <div class="progress__fill" 
+                [style.width.%]="pct(byRule.need, limits.need)"
+                [style.background]="barColor(byRule.need, limits.need)">
+              </div>
             </div>
           </div>
-          <div class="rule-card__amounts">
-            <span>{{ formatSol(byRule.need) }} gastado</span>
-            <span>límite {{ formatSol(limits.need) }}</span>
+          <div class="budget-card__bottom">
+            <span class="budget-card__spent">{{ formatSol(byRule.need) }}</span>
+            <span class="budget-card__limit">de {{ formatSol(limits.need) }}</span>
           </div>
         </div>
 
-        <div class="rule-card">
-          <div class="rule-card__header">
-            <span>🎬 Deseos</span>
-            <span class="rule-card__pct" [style.color]="barColor(byRule.want, limits.want)">
-              {{ pct(byRule.want, limits.want) }}%
-            </span>
+        <!-- Deseos -->
+        <div class="budget-card">
+          <div class="budget-card__top">
+            <span class="budget-card__icon">🎬</span>
+            <span class="budget-card__name">Deseos</span>
           </div>
-          <div class="progress-track">
-            <div class="progress-fill"
-              [style.width.%]="pct(byRule.want, limits.want)"
-              [style.background]="barColor(byRule.want, limits.want)">
+          <div class="budget-card__bar">
+            <div class="progress">
+              <div class="progress__fill" 
+                [style.width.%]="pct(byRule.want, limits.want)"
+                [style.background]="barColor(byRule.want, limits.want)">
+              </div>
             </div>
           </div>
-          <div class="rule-card__amounts">
-            <span>{{ formatSol(byRule.want) }} gastado</span>
-            <span>límite {{ formatSol(limits.want) }}</span>
+          <div class="budget-card__bottom">
+            <span class="budget-card__spent">{{ formatSol(byRule.want) }}</span>
+            <span class="budget-card__limit">de {{ formatSol(limits.want) }}</span>
           </div>
         </div>
 
-        <div class="rule-card">
-          <div class="rule-card__header">
-            <span>🐷 Ahorro</span>
-            <span class="rule-card__pct" [style.color]="barColor(byRule.saving, limits.saving)">
-              {{ pct(byRule.saving, limits.saving) }}%
-            </span>
+        <!-- Ahorro -->
+        <div class="budget-card">
+          <div class="budget-card__top">
+            <span class="budget-card__icon">🐷</span>
+            <span class="budget-card__name">Ahorro</span>
           </div>
-          <div class="progress-track">
-            <div class="progress-fill"
-              [style.width.%]="pct(byRule.saving, limits.saving)"
-              [style.background]="barColor(byRule.saving, limits.saving)">
+          <div class="budget-card__bar">
+            <div class="progress">
+              <div class="progress__fill" 
+                [style.width.%]="pct(byRule.saving, limits.saving)"
+                [style.background]="barColor(byRule.saving, limits.saving)">
+              </div>
             </div>
           </div>
-          <div class="rule-card__amounts">
-            <span>{{ formatSol(byRule.saving) }} ahorrado</span>
-            <span>meta {{ formatSol(limits.saving) }}</span>
+          <div class="budget-card__bottom">
+            <span class="budget-card__spent">{{ formatSol(byRule.saving) }}</span>
+            <span class="budget-card__limit">meta {{ formatSol(limits.saving) }}</span>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- META DE AHORRO (mini) -->
+    <!-- GOAL -->
     @if (goal()) {
     <section class="section">
-      <h2 class="section__title">🎯 Meta S/ 10,000</h2>
+      <div class="section__header">
+        <h2 class="section__title">🎯 Meta de ahorro</h2>
+        <a routerLink="/goal" class="section__link">Ver →</a>
+      </div>
+      
       <div class="goal-card">
-        <div class="goal-card__top">
-          <div>
-            <p class="goal-card__current">{{ formatSol(goal()!.currentAmount) }}</p>
-            <p class="goal-card__label">de {{ formatSol(goal()!.targetAmount) }}</p>
-          </div>
-          <div class="goal-card__right">
-            <p class="goal-card__months">{{ goal()!.monthsToGoal ?? 0 }} meses</p>
-            <p class="goal-card__label">estimado: {{ estimatedDate }}</p>
-          </div>
+        <div class="goal-card__main">
+          <span class="goal-card__current">{{ formatSol(goal()!.currentAmount) }}</span>
+          <span class="goal-card__target">de {{ formatSol(goal()!.targetAmount) }}</span>
         </div>
-        <div class="progress-track progress-track--lg">
-          <div class="progress-fill progress-fill--green"
-            [style.width.%]="goalProgress">
+        <div class="goal-card__progress">
+          <div class="progress progress--lg">
+            <div class="progress__fill progress__fill--green" [style.width.%]="goalProgress"></div>
           </div>
+          <span class="goal-card__pct">{{ goalProgress.toFixed(1) }}%</span>
         </div>
-        <div class="goal-card__pct">{{ goalProgress.toFixed(1) }}% completado</div>
-        <a routerLink="/goal" class="btn-link-sm">Ver detalles →</a>
+        <div class="goal-card__meta">
+          <span>{{ goal()!.monthsToGoal ?? 0 }} meses para llegar</span>
+        </div>
       </div>
     </section>
     }
 
-    <!-- GASTOS POR CATEGORÍA -->
+    <!-- CATEGORIES -->
     @if (byCategory.length > 0) {
     <section class="section">
-      <h2 class="section__title">📊 Gastos por categoría</h2>
+      <div class="section__header">
+        <h2 class="section__title">Gastos por categoría</h2>
+      </div>
+      
       <div class="category-list">
         @for (cat of byCategory; track cat.name) {
-          <div class="category-row">
-            <span class="category-row__icon">{{ cat.icon }}</span>
-            <span class="category-row__name">{{ cat.name }}</span>
-            <span class="category-row__amount">{{ formatSol(cat.total) }}</span>
+          <div class="category-item">
+            <span class="category-item__icon">{{ cat.icon }}</span>
+            <span class="category-item__name">{{ cat.name }}</span>
+            <span class="category-item__amount">{{ formatSol(cat.total) }}</span>
           </div>
         }
       </div>
     </section>
     }
-
-    <!-- ÚLTIMAS TRANSACCIONES -->
-    <section class="section">
-      <div class="section__titlebar">
-        <h2 class="section__title">Últimos movimientos</h2>
-        <a routerLink="/transactions" class="btn-link-sm">Ver todos →</a>
-      </div>
-      @if (transactions().length === 0) {
-        <p class="empty">Sin movimientos este mes. ¡Registra el primero!</p>
-      }
-      <div class="tx-list">
-        @for (tx of transactions().slice(0, 5); track tx.id) {
-          <div class="tx-row">
-            <span class="tx-row__icon">{{ tx.category?.icon ?? '💰' }}</span>
-            <div class="tx-row__info">
-              <span class="tx-row__desc">{{ tx.description ?? tx.category?.name ?? 'Sin descripción' }}</span>
-              <span class="tx-row__date">{{ tx.date }}</span>
-            </div>
-            <span class="tx-row__amount" [class.income]="tx.amount > 0" [class.expense]="tx.amount < 0">
-              {{ tx.amount > 0 ? '+' : '' }}{{ formatSol(tx.amount) }}
-            </span>
-          </div>
-        }
-      </div>
-    </section>
 
   </main>
 
-  <!-- FAB: Botón flotante + -->
-  <button class="fab" (click)="openQuickEntry()" title="Agregar movimiento">+</button>
+  <!-- FAB -->
+  <button class="fab" (click)="openQuickEntry()">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
 
 </div>
 }
@@ -192,57 +228,67 @@
 @if (showQuickEntry()) {
 <div class="overlay" (click)="closeQuickEntry()">
   <div class="modal" (click)="$event.stopPropagation()">
-
+    
     <div class="modal__header">
-      <h3>Nuevo movimiento</h3>
-      <button (click)="closeQuickEntry()" class="modal__close">✕</button>
+      <h3>Nueva transacción</h3>
+      <button class="modal__close" (click)="closeQuickEntry()">×</button>
     </div>
 
-    <!-- Tipo: Gasto / Ingreso -->
+    <!-- Type Toggle -->
     <div class="type-toggle">
-      <button [class.active]="isExpense" (click)="setSign('expense')">🔴 Gasto</button>
-      <button [class.active]="!isExpense" (click)="setSign('income')">💚 Ingreso</button>
+      <button [class.active]="!isExpense" (click)="setSign('income')">Ingreso</button>
+      <button [class.active]="isExpense" (click)="setSign('expense')">Gasto</button>
     </div>
 
-    <!-- Display del monto -->
-    <div class="numpad__display" [class.expense]="isExpense" [class.income]="!isExpense && quickAmount !== ''">
-      {{ quickAmount || '0.00' }}
+    <!-- Amount Display -->
+    <div class="numpad__display" [class.expense]="isExpense" [class.income]="!isExpense">
+      S/ {{ quickAmount || '0' }}
     </div>
 
-    <!-- Teclado numérico -->
+    <!-- Numpad -->
     <div class="numpad">
-      @for (key of ['7','8','9','4','5','6','1','2','3','.','0','⌫']; track key) {
-        <button class="numpad__key" (click)="key === '⌫' ? deleteDigit() : appendDigit(key)">
-          {{ key }}
-        </button>
-      }
+      <button class="numpad__key" (click)="appendDigit('1')">1</button>
+      <button class="numpad__key" (click)="appendDigit('2')">2</button>
+      <button class="numpad__key" (click)="appendDigit('3')">3</button>
+      <button class="numpad__key" (click)="appendDigit('4')">4</button>
+      <button class="numpad__key" (click)="appendDigit('5')">5</button>
+      <button class="numpad__key" (click)="appendDigit('6')">6</button>
+      <button class="numpad__key" (click)="appendDigit('7')">7</button>
+      <button class="numpad__key" (click)="appendDigit('8')">8</button>
+      <button class="numpad__key" (click)="appendDigit('9')">9</button>
+      <button class="numpad__key" (click)="appendDigit('.')">.</button>
+      <button class="numpad__key" (click)="appendDigit('0')">0</button>
+      <button class="numpad__key numpad__key--del" (click)="deleteDigit()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="17 10 12 15 7 10"/>
+          <line x1="12" y1="15" x2="7" y2="10"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- Descripción -->
-    <input
-      class="modal__input"
-      type="text"
-      [(ngModel)]="quickDescription"
-      placeholder="Descripción (opcional)"
-    />
-
-    <!-- Categoría -->
+    <!-- Category Select -->
     <select class="modal__input" [(ngModel)]="quickCategoryId">
-      <option value="">Sin categoría</option>
+      <option value="">Selecciona categoría</option>
       @for (cat of categories(); track cat.id) {
         <option [value]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
       }
     </select>
 
-    <!-- Fecha -->
-    <input class="modal__input" type="date" [(ngModel)]="quickDate" />
+    <!-- Description -->
+    <input type="text" class="modal__input" [(ngModel)]="quickDescription" placeholder="Descripción (opcional)">
 
+    <!-- Error -->
     @if (quickError) {
-      <p class="modal__error">{{ quickError }}</p>
+      <p class="error">{{ quickError }}</p>
     }
 
+    <!-- Save Button -->
     <button class="btn-primary" (click)="saveQuickEntry()" [disabled]="quickLoading">
-      @if (quickLoading) { <span class="spinner"></span> } @else { Guardar }
+      @if (quickLoading) {
+        Guardando...
+      } @else {
+        Guardar transacción
+      }
     </button>
 
   </div>
