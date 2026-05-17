@@ -144,12 +144,30 @@ export class FirebaseService {
     const snapshot = await getDocs(q);
     const transactions = snapshot.docs.map(doc => doc.data());
     
-    // Calculate totals
+    // Get income data for this month
+    const [year, month] = monthId.split('-').map(Number);
+    const incomeData = await this.calculateMonthlyIncome(userId, year, month);
+    
+    // Calculate totals from transactions (actual received)
     const income = transactions.filter((t: any) => t.amount > 0).reduce((s: number, t: any) => s + t.amount, 0);
     const expenses = transactions.filter((t: any) => t.amount < 0).reduce((s: number, t: any) => s + Math.abs(t.amount), 0);
-    const balance = income - expenses;
-    const savings = income - expenses;
-    const savingsRate = income > 0 ? (savings / income) * 100 : 0;
+    
+    // Use income data for budgeted amounts
+    const budgetedIncome = incomeData.totalBudgeted;
+    const initialBalance = incomeData.initialBalance;
+    
+    // Available now = initial balance + received
+    const availableNow = initialBalance + income;
+    
+    // Budgeted balance = initial + expected income - budgeted expenses
+    const budgetedExpenses = expenses; // For now, assume budget = actual for expenses
+    
+    const balance = availableNow - expenses; // Actual balance
+    const budgetedBalance = (initialBalance + budgetedIncome) - budgetedExpenses; // Expected at end of month
+    
+    const savings = availableNow - expenses;
+    const budgetedSavings = (initialBalance + budgetedIncome) - budgetedExpenses;
+    const savingsRate = budgetedIncome > 0 ? (budgetedSavings / budgetedIncome) * 100 : 0;
     
     // Calculate 50/30/20 breakdown
     const expensesByType = { need: 0, want: 0, saving: 0 };
@@ -174,15 +192,34 @@ export class FirebaseService {
     else if (score >= 40) healthStatus = 'warning';
     else healthStatus = 'critical';
     
-    // Save financial state
+    // Save financial state with income breakdown
     const financialState = {
+      // Income
       income,
+      incomeBudgeted: budgetedIncome,
+      incomeReceived: income,
+      incomePending: budgetedIncome - income,
+      initialBalance,
+      availableNow,
+      expectedByEndOfMonth: initialBalance + budgetedIncome,
+      
+      // Expenses
       expenses,
+      expensesBudgeted: budgetedExpenses,
+      
+      // Balance
       balance,
+      budgetedBalance,
+      
+      // Savings
       savings,
       savingsRate: Math.round(savingsRate * 10) / 10,
+      
+      // Score
       financialScore: score,
       healthStatus,
+      
+      // Expenses breakdown
       rule50320: expensesByType,
       lastUpdated: new Date().toISOString()
     };
@@ -264,5 +301,168 @@ export class FirebaseService {
     const dataWithId = { ...data, id: docRef.id, createdAt: new Date().toISOString() };
     await setDoc(docRef, dataWithId);
     return dataWithId;
+  }
+
+  // ============================================
+  // INCOME SOURCES (NEW)
+  // ============================================
+  
+  // Get all income sources for user
+  async getIncomeSources(userId: string) {
+    const q = query(
+      collection(this.firestore, `users/${userId}/incomeSources`),
+      orderBy('name')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Get active income sources
+  async getActiveIncomeSources(userId: string) {
+    const q = query(
+      collection(this.firestore, `users/${userId}/incomeSources`),
+      where('isActive', '==', true),
+      orderBy('name')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Create income source
+  async createIncomeSource(userId: string, data: any): Promise<any> {
+    const docRef = doc(collection(this.firestore, `users/${userId}/incomeSources`));
+    const now = new Date().toISOString();
+    const sourceData = {
+      ...data,
+      id: docRef.id,
+      userId,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now
+    };
+    await setDoc(docRef, sourceData);
+    return sourceData;
+  }
+
+  // Update income source
+  async updateIncomeSource(userId: string, sourceId: string, data: any) {
+    const docRef = doc(this.firestore, `users/${userId}/incomeSources/${sourceId}`);
+    await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+  }
+
+  // Delete (deactivate) income source
+  async deactivateIncomeSource(userId: string, sourceId: string) {
+    const docRef = doc(this.firestore, `users/${userId}/incomeSources/${sourceId}`);
+    await setDoc(docRef, { isActive: false, updatedAt: new Date().toISOString() });
+  }
+
+  // Record income received
+  async recordIncomeReceived(userId: string, sourceId: string, amount: number, receivedDate: string) {
+    const docRef = doc(this.firestore, `users/${userId}/incomeSources/${sourceId}`);
+    await setDoc(docRef, { 
+      actualAmount: amount,
+      lastPaymentDate: receivedDate,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  }
+
+  // ============================================
+  // INITIAL BALANCE
+  // ============================================
+  
+  // Get initial balance
+  async getInitialBalance(userId: string): Promise<number> {
+    const docRef = doc(this.firestore, `users/${userId}/profile`);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return data['initialBalance'] || 0;
+    }
+    return 0;
+  }
+
+  // Set initial balance
+  async setInitialBalance(userId: string, amount: number) {
+    const docRef = doc(this.firestore, `users/${userId}/profile`);
+    await setDoc(docRef, { initialBalance: amount }, { merge: true });
+  }
+
+  // ============================================
+  // MONTHLY INCOME CALCULATION
+  // ============================================
+  
+  // Calculate monthly income with dates
+  async calculateMonthlyIncome(userId: string, year: number, month: number): Promise<any> {
+    const monthId = `${year}-${String(month).padStart(2, '0')}`;
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+    const isCurrentMonth = currentYear === year && currentMonth === month;
+    
+    // Get active income sources
+    const sources = await this.getActiveIncomeSources(userId);
+    
+    // Get initial balance
+    const initialBalance = await this.getInitialBalance(userId);
+    
+    // Get transactions for the month to calculate what's actually received
+    const transactions = await this.getTransactionsByMonth(userId, year, month);
+    const incomeTransactions = transactions.filter((t: any) => t.amount > 0);
+    const totalReceived = incomeTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
+    
+    // Calculate expected vs received per source
+    const sourceDetails = sources.map((source: any) => {
+      // Find transactions from this source
+      const sourceTransactions = incomeTransactions.filter((t: any) => 
+        t.description?.toLowerCase().includes(source.name.toLowerCase()) ||
+        t.incomeSourceId === source.id
+      );
+      const received = sourceTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
+      
+      const expectedDate = source.paymentDayOfMonth;
+      const isOverdue = isCurrentMonth && expectedDate && currentDay > expectedDate && received === 0;
+      const isPending = isCurrentMonth && expectedDate && currentDay < expectedDate && received === 0;
+      const isReceived = received > 0;
+      
+      let status: 'pending' | 'partial' | 'received' | 'overdue' = 'pending';
+      if (isReceived) status = received >= source.amount ? 'received' : 'partial';
+      else if (isOverdue) status = 'overdue';
+      else if (isPending) status = 'pending';
+      
+      return {
+        sourceId: source.id,
+        name: source.name,
+        type: source.type,
+        budgeted: source.amount,
+        received,
+        expectedDate,
+        receivedDate: source.lastPaymentDate,
+        status
+      };
+    });
+    
+    // Calculate totals
+    const totalBudgeted = sources.reduce((sum: number, s: any) => sum + s.amount, 0);
+    const totalExpected = sourceDetails.reduce((sum: number, s: any) => sum + s.budgeted, 0);
+    
+    // Available now = initial balance + received so far
+    const availableNow = initialBalance + totalReceived;
+    
+    // Expected by end of month
+    const expectedByEndOfMonth = initialBalance + totalBudgeted;
+    
+    return {
+      monthId,
+      totalBudgeted,
+      totalExpected,
+      totalReceived,
+      totalPending: totalExpected - totalReceived,
+      initialBalance,
+      availableNow,
+      expectedByEndOfMonth,
+      sources: sourceDetails,
+      lastUpdated: new Date().toISOString()
+    };
   }
 }
