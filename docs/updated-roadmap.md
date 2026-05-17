@@ -62,11 +62,13 @@
 - [x] Alerta: Cambio de precio (backend listo)
 - [ ] Alertas activas en UI (pendiente)
 
-#### 2.6 Goals (BÁSICO)
+#### 2.6 Goals (COMPLETO) ✅
 - [x] Goals básicos (1 meta)
-- [ ] Goals múltiples (pendiente)
-- [ ] Prioridades de goals (pendiente)
-- [ ] Proyección de fecha (partial)
+- [x] Goals múltiples (prioridad, categorías, contribuciones)
+- [x] Prioridades de goals (high, medium, low)
+- [x] Proyección de fecha (calculada automáticamente)
+- [x] Historial de contribuciones por goal
+- [x] Goals por categoría y prioridad
 
 ---
 
@@ -119,4 +121,18 @@ SIGUIENTE:
 ---
 
 **Última actualización**: Mayo 2026  
-**Progreso**: ~60% del sistema completo
+**Progreso**: ~65% del sistema completo
+
+---
+
+## Registro de Milestones
+
+| # | Milestone | Estado | Fecha |
+|---|-----------|--------|-------|
+| 001 | Firebase Migration | ✅ COMPLETO | - |
+| 002 | Arquitectura Escalable | ✅ COMPLETO | - |
+| 003 | Theme Light | ✅ COMPLETO | - |
+| 004 | Sistema Financiero Completo | ✅ COMPLETO | Mayo 2026 |
+| 005 | Goals Múltiples | ✅ COMPLETO | Mayo 2026 |
+
+> Ver documentación en: `docs/milestones/`

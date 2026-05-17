@@ -26,7 +26,7 @@ Track Pays es un **sistema operativo financiero personal** que proporciona:
 | Flujo de caja | ✅ | COMPLETO |
 | Onboarding adaptativo | ✅ | COMPLETO (backend) |
 | Sistema extensible | ✅ | COMPLETO |
-| Goals múltiples | ⚠️ | BÁSICO |
+| **Goals múltiples** | ✅ | **COMPLETO** |
 | Alertas activas | ⚠️ | READY (no activas) |
 | Comparativas mensuales | ❌ | PENDIENTE |
 
