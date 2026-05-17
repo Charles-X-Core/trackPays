@@ -12,7 +12,7 @@ export class TransactionService {
     const userId = this.authService.getUserId();
     if (!userId) return [];
 
-    const data = await this.firebase.getTransactions(userId, year, month);
+    const data = await this.firebase.getTransactionsByMonth(userId, year, month);
     return data as Transaction[];
   }
 
@@ -36,6 +36,8 @@ export class TransactionService {
       description: payload.description,
       date: payload.date,
       type: payload.type,
+      // Include ruleType for financial calculations
+      ruleType: payload.type === 'income' ? 'income' : 'need',
       createdAt: now,
       updatedAt: now
     };
@@ -64,7 +66,7 @@ export class TransactionService {
     transactions
       .filter(t => t.amount < 0 && t.category)
       .forEach(t => {
-        const type = t.category!.rule_type as keyof typeof result;
+        const type = (t.category as any)?.rule_type as keyof typeof result;
         if (type in result) result[type] += Math.abs(t.amount);
       });
     return result;
@@ -76,7 +78,7 @@ export class TransactionService {
       .filter(t => t.amount < 0 && t.category)
       .forEach(t => {
         const key = t.categoryId ?? 'sin-categoría';
-        const prev = map.get(key) ?? { name: t.category!.name, icon: t.category!.icon, total: 0 };
+        const prev = map.get(key) ?? { name: (t.category as any)?.name ?? 'Sin categoría', icon: (t.category as any)?.icon ?? '📦', total: 0 };
         map.set(key, { ...prev, total: prev.total + Math.abs(t.amount) });
       });
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
