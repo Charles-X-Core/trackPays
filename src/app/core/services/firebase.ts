@@ -726,4 +726,173 @@ export class FirebaseService {
       lastUpdated: new Date().toISOString()
     };
   }
+
+  // ============================================
+  // BUDGETS (Presupuesto por Categoría)
+  // ============================================
+  
+  // Get budgets for a month
+  async getBudgetsByMonth(userId: string, year: number, month: number): Promise<any[]> {
+    const monthId = `${year}-${String(month).padStart(2, '0')}`;
+    const q = query(
+      collection(this.firestore, `users/${userId}/months/${monthId}/budgets`),
+      orderBy('isPrimordial'),
+      orderBy('budgetedAmount', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Create or update budget for a category
+  async setBudget(userId: string, data: any): Promise<any> {
+    const monthId = data.monthId;
+    const docRef = doc(this.firestore, `users/${userId}/months/${monthId}/budgets/${data.category}`);
+    const now = new Date().toISOString();
+    
+    const budgetData = {
+      ...data,
+      actualAmount: 0,
+      remainingAmount: data.budgetedAmount,
+      percentageUsed: 0,
+      status: 'on_track',
+      history: [],
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    await setDoc(docRef, budgetData, { merge: true });
+    return budgetData;
+  }
+
+  // Update actual spent for a budget
+  async updateBudgetActual(userId: string, category: string, monthId: string, actualAmount: number) {
+    const docRef = doc(this.firestore, `users/${userId}/months/${monthId}/budgets/${category}`);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) return;
+    
+    const budget = docSnap.data();
+    const percentageUsed = Math.round((actualAmount / budget.budgetedAmount) * 100);
+    const remainingAmount = Math.max(0, budget.budgetedAmount - actualAmount);
+    
+    let status = 'on_track';
+    if (percentageUsed >= 100) status = 'exceeded';
+    else if (percentageUsed >= budget.alertThreshold) status = 'at_risk';
+    else if (percentageUsed === 0) status = 'unused';
+    
+    // Add to history
+    const history = budget.history || [];
+    history.push({
+      date: new Date().toISOString(),
+      actualAmount,
+      percentage: percentageUsed
+    });
+    
+    await setDoc(docRef, {
+      actualAmount,
+      remainingAmount,
+      percentageUsed,
+      status,
+      history,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  }
+
+  // Calculate monthly budget summary with actuals
+  async calculateMonthlyBudgetSummary(userId: string, year: number, month: number): Promise<any> {
+    const monthId = `${year}-${String(month).padStart(2, '0')}`;
+    
+    // Get budgets for the month
+    let budgets = await this.getBudgetsByMonth(userId, year, month);
+    
+    // If no budgets exist, create empty summary
+    if (!budgets || budgets.length === 0) {
+      return {
+        monthId,
+        totalBudgeted: 0,
+        totalActual: 0,
+        totalRemaining: 0,
+        overallPercentage: 0,
+        overallStatus: 'unused',
+        primordialBudgeted: 0,
+        primordialActual: 0,
+        nonPrimordialBudgeted: 0,
+        nonPrimordialActual: 0,
+        budgets: [],
+        alerts: [],
+        lastUpdated: new Date().toISOString()
+      };
+    }
+    
+    // Get actual expenses from transactions
+    const transactions = await this.getTransactionsByMonth(userId, year, month);
+    const expenses = transactions.filter((t: any) => t.amount < 0);
+    
+    // Group expenses by category and update budgets
+    const expenseByCategory: Record<string, number> = {};
+    expenses.forEach((t: any) => {
+      const cat = t.category || 'other';
+      expenseByCategory[cat] = (expenseByCategory[cat] || 0) + Math.abs(t.amount);
+    });
+    
+    // Update each budget with actual amount
+    const updatedBudgets = budgets.map((b: any) => {
+      const actual = expenseByCategory[b.category] || 0;
+      const percentageUsed = b.budgetedAmount > 0 ? Math.round((actual / b.budgetedAmount) * 100) : 0;
+      const remainingAmount = Math.max(0, b.budgetedAmount - actual);
+      
+      let status: 'on_track' | 'at_risk' | 'exceeded' | 'unused' = 'on_track';
+      if (percentageUsed >= 100) status = 'exceeded';
+      else if (percentageUsed >= (b.alertThreshold || 80)) status = 'at_risk';
+      else if (percentageUsed === 0) status = 'unused';
+      
+      return { ...b, actualAmount: actual, remainingAmount, percentageUsed, status };
+    });
+    
+    // Calculate totals
+    const totalBudgeted = updatedBudgets.reduce((sum: number, b: any) => sum + b.budgetedAmount, 0);
+    const totalActual = updatedBudgets.reduce((sum: number, b: any) => sum + b.actualAmount, 0);
+    
+    const primordial = updatedBudgets.filter((b: any) => b.isPrimordial);
+    const nonPrimordial = updatedBudgets.filter((b: any) => !b.isPrimordial);
+    
+    const primordialBudgeted = primordial.reduce((sum: number, b: any) => sum + b.budgetedAmount, 0);
+    const primordialActual = primordial.reduce((sum: number, b: any) => sum + b.actualAmount, 0);
+    const nonPrimordialBudgeted = nonPrimordial.reduce((sum: number, b: any) => sum + b.budgetedAmount, 0);
+    const nonPrimordialActual = nonPrimordial.reduce((sum: number, b: any) => sum + b.actualAmount, 0);
+    
+    // Generate alerts
+    const alerts = updatedBudgets
+      .filter((b: any) => b.status === 'at_risk' || b.status === 'exceeded')
+      .map((b: any) => ({
+        category: b.category,
+        name: b.categoryName,
+        budgeted: b.budgetedAmount,
+        actual: b.actualAmount,
+        percentage: b.percentageUsed,
+        status: b.status
+      }));
+    
+    const overallPercentage = totalBudgeted > 0 ? Math.round((totalActual / totalBudgeted) * 100) : 0;
+    let overallStatus: 'on_track' | 'at_risk' | 'exceeded' | 'unused' = 'on_track';
+    if (overallPercentage >= 100) overallStatus = 'exceeded';
+    else if (overallPercentage >= 80) overallStatus = 'at_risk';
+    else if (overallPercentage === 0) overallStatus = 'unused';
+    
+    return {
+      monthId,
+      totalBudgeted,
+      totalActual,
+      totalRemaining: Math.max(0, totalBudgeted - totalActual),
+      overallPercentage,
+      overallStatus,
+      primordialBudgeted,
+      primordialActual,
+      nonPrimordialBudgeted,
+      nonPrimordialActual,
+      budgets: updatedBudgets,
+      alerts,
+      lastUpdated: new Date().toISOString()
+    };
+  }
 }
