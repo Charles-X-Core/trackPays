@@ -1,291 +1,122 @@
 # Roadmap Actualizado - Track Pays
-## v2.0 - Con Sistema Financiero Maestro
+## v2.0 - Mayo 2026
 
 ---
 
-## Análisis de Documentos Existentes
+## Estado de Avance
 
-### Documentos Principales (vigentes):
-1. **financial-system-master.md** - Sistema financiero completo ⭐
-2. **backend-analysis-and-methodology.md** - Análisis + metodología
-3. **firestore-architecture.md** - Schema de base de datos (visón ideal)
-4. **app-architecture.md** - Arquitectura general (parcial)
-5. **milestones/** - Progreso realizado
-
-### Conflictos/ Gaps Identificados:
-| Problema | Origen | Solución |
-|----------|--------|----------|
-| Onboarding muy básico | Roadmap original | Expandir en Fase 2.1 |
-| Sin restricciones por edad | Roadmap original | Agregar en Fase 2.1 |
-| Gastos solo "categorías" | Modelo actual | Sistema dual (primordial/no primordial) |
-| Sin sistema de fechas | Roadmap original | Agregar payment scheduling |
-| Comparativas simples | Fase 3 actual | Integrar flujo de caja completo |
-| Metas simples | Fase 4 actual | Sistema de ahorro/inversiones completo |
+| Fase | Estado | Completado |
+|------|--------|------------|
+| Fase 1: Foundation | ✅ COMPLETO | 100% |
+| Fase 2.1: Onboarding | ✅ COMPLETO | 100% (backend) |
+| Fase 2.2: Ingresos | ✅ COMPLETO | 100% |
+| Fase 2.3: Gastos Dual | ✅ COMPLETO | 100% |
+| Fase 2.4: Flujo Caja | ✅ COMPLETO | 100% |
+| Fase 2.5: Alertas | ⚠️ READY | 70% (backend listo, no activas) |
+| Fase 2.6: Goals | ⚠️ BÁSICO | 40% |
+| Fase 3: Analytics | ❌ PENDIENTE | 0% |
 
 ---
 
-## Roadmap Actualizado
+## Detalle de Avance
 
-```
-╔══════════════════════════════════════════════════════════════════════════════════════╗
-║                          TRACK PAYS ROADMAP v2.0                                      ║
-╠══════════════════════════════════════════════════════════════════════════════════════╣
-║                                                                                       ║
-║  FASE 1 (2025)          │ FASE 2 (2025-2026)     │ FASE 3 (2026)      │ FASE 4+     ║
-║  Foundation             │ Sistema Financiero     │ Analytics + IA     │ Expansión   ║
-║  ───────────            │ ────────────────────    │ ──────────────     │ ─────────   ║
-║                          │                          │                    │             ║
-║  ✓ Firebase migration   │ ✓ Onboarding completo  │ Smart alerts      │ OCR recibos ║
-║  ✓ Core architecture    │ ✓ Perfil usuario (edad) │ Predicciones      │ Open banking║
-║  ✓ Basic dashboard      │ ✓ Ingresos múltiples    │ Comparativas AI    │ Multi-device║
-║  ✓ Basic auth          │ ✓ Gastos dual system   │ Cash flow analysis│             ║
-║                          │ ✓ Fechas y scheduling  │ Trends avanzados  │             ║
-║                          │ ✓ Ahorro/inversiones   │ Health score v2    │             ║
-║                          │ ✓ Quick Entry v2       │                    │             ║
-║                          │ ✓ Dashboard financiero │                    │             ║
-║                          │ ✓ Alertas básicas      │                    │             ║
-║                          │                          │                    │             ║
-╚══════════════════════════════════════════════════════════════════════════════════════╝
-```
+### ✅ FASE 1: Foundation (COMPLETO)
+- [x] Firebase migration
+- [x] Core architecture
+- [x] Basic dashboard
+- [x] Basic auth
+
+### ✅ FASE 2: Sistema Financiero
+
+#### 2.1 Onboarding + Perfil (COMPLETO)
+- [x] Onboarding de 4-6 pasos
+- [x] Edad (15+)
+- [x] Ingresos (múltiples fuentes)
+- [x] Restricciones por edad (15-17, 18-23, 24+)
+- [x] Perfil de usuario en Firestore
+
+#### 2.2 Ingresos (COMPLETO)
+- [x] Múltiples fuentes (salary, freelance, business, AFP, otros)
+- [x] Fechas de pago (paymentDayOfMonth)
+- [x] Deducciones (AFP, seguros)
+- [x] Balance inicial
+- [x] Comparación: presupuestado vs recibido
+
+#### 2.3 Gastos Dual (COMPLETO)
+- [x] Sistema dual (primordial vs no primordial)
+- [x] Estados: pending, partial, paid, overdue, cancelled
+- [x] Fechas de vencimiento
+- [x] Presupuesto vs real
+- [x] Sistema extensible (providerDetails, debtDetails, serviceDetails, metadata)
+
+#### 2.4 Flujo de Caja (COMPLETO)
+- [x] Dashboard de flujo de caja
+- [x] Ingresos presupuestados vs reales
+- [x] Gastos presupuestados vs reales
+- [x] Disponible ahora vs esperado
+- [x] Comparativa: presupuesto vs actual
+
+#### 2.5 Alertas (PARCIAL - READY)
+- [x] Alerta: Presupuesto excedido (backend listo)
+- [x] Alerta: Pago vencido (backend listo)
+- [x] Alerta: Cambio de precio (backend listo)
+- [ ] Alertas activas en UI (pendiente)
+
+#### 2.6 Goals (BÁSICO)
+- [x] Goals básicos (1 meta)
+- [ ] Goals múltiples (pendiente)
+- [ ] Prioridades de goals (pendiente)
+- [ ] Proyección de fecha (partial)
 
 ---
 
-## Detalle de Fases
+## Pendiente de Implementar
 
-### FASE 1: Foundation & Migration ✅ COMPLETADO
+### Alta Prioridad
+1. **Goals múltiples** - permitir varias metas simultáneas
+2. **Budgets por categoría** - presupuesto específico por categoría
+3. **Alertas activas en UI** - mostrar alertas al usuario
 
-| Entregable | Estado |
-|------------|--------|
-| Firebase Migration | ✅ Completado |
-| Firestore Schema | ✅ Completado |
-| Core Architecture | ✅ Completado |
-| Basic Auth | ✅ Completado |
-| Basic Dashboard | ✅ Completado |
-| Theme Light | ✅ Completado |
-| Dashboard V2 (UI) | ✅ Completado |
+### Media Prioridad
+4. **Comparativas mensuales** - este mes vs mes anterior
+5. **Calendario de pagos** - ver próximos pagos
+6. **Recordatorios** - notificaciones de vencimiento
+
+### Baja Prioridad
+7. **Analytics persistidos** - guardar analytics por mes
+8. **Insights automáticos** - sugerencias personalizadas
+9. **Detección de transacciones recurrentes**
+10. **OCR de recibos** (Fase 3)
+11. **Open Banking** (Fase 4)
 
 ---
 
-### FASE 2: Sistema Financiero Completo
+## Próximos Pasos Inmediatos
 
-**Timeline**: Mayo - Agosto 2026 (4 meses)
+```
+PRÓXIMO SPRINT:
+├── Goals múltiples (priority)
+├── Budget por categoría (priority)
+└── Alertas activas (priority)
 
-**Objetivo**: Implementar el sistema financiero maestro con onboarding adaptativo, gestión de ingresos/gastos dual, y flujo de caja completo.
-
-#### FASE 2.1: Onboarding + Perfil (Prioridad Alta)
-```
-Entregables:
-├── Onboarding de 4-6 pasos
-│   ├── Edad (15+)
-│   ├── Ingresos (múltiples fuentes)
-│   ├── Gastos primordiales
-│   ├── Gastos no primordiales
-│   ├── Ahorro e inversiones
-│   └── Resumen y presupuesto
-├── Restricciones por edad (15-17, 18-23, 24+)
-├── Perfil de usuario en Firestore
-└── Presupuesto automático basado en perfil
-```
-
-#### FASE 2.2: Sistema de Gastos (Prioridad Alta)
-```
-Entregables:
-├── Sistema dual de gastos
-│   ├── Primordiales (esenciales)
-│   └── No primordiales (opcionales)
-├── Estados de pago
-│   ├── pending (pendiente)
-│   ├── partial (parcial)
-│   ├── paid (pagado)
-│   ├── overdue (vencido)
-│   └── cancelled (cancelado)
-├── Fechas de vencimiento
-├── Cálculo de fecha óptima de pago
-└── Historial por mes
-```
-
-#### FASE 2.3: Sistema de Ingresos (Prioridad Alta)
-```
-Entregables:
-├── Múltiples fuentes de ingreso
-│   ├── Salary (con deducciones AFP/seguro)
-│   ├── Freelance
-│   ├── Business
-│   ├── AFP/Pensión
-│   └── Otros (alquiler, dividendos, etc.)
-├── Balance inicial
-├── Presupuesto vs Actual por fuente
-└── Total de ingresos por mes
-```
-
-#### FASE 2.4: Flujo de Caja (Prioridad Media)
-```
-Entregables:
-├── Dashboard de flujo de caja
-│   ├── Ingresos presupuestados vs reales
-│   ├── Gastos presupuestados vs reales
-│   ├── Comparativa: presupuesto vs actual
-│   └── Sobrante/Déficit
-├── Comparativa mensual
-│   ├── Este mes vs mes anterior
-│   ├── Tendencias por categoría
-│   └── Metas: reducir gastos / aumentar ahorro
-└── Vista de calendario de pagos
-```
-
-#### FASE 2.5: Alertas (Prioridad Media)
-```
-Entregables:
-├── Alerta: Presupuesto excedido
-├── Alerta: Gasto crítico (variable subió >X%)
-├── Alerta: Pago vencido
-├── Alerta: Cambio de precio (suscripciones)
-├── Alerta: Salud financiera
-└── Alerta: Meta cumplida
-```
-
-#### FASE 2.6: Quick Entry v2 + Mejoras UX
-```
-Entregables:
-├── Quick Entry optimizado
-├── Recent categories
-├── Smart defaults por hora
-└── Quick stats en dashboard
+SIGUIENTE:
+├── Comparativas mensuales
+├── Calendario de pagos
+└── Recordatorios
 ```
 
 ---
 
-### FASE 3: Analytics + IA
+## Documentación de Referencia
 
-**Timeline**: Septiembre - Diciembre 2026
-
-**Objetivo**: Agregar inteligencia al sistema financiero con análisis predictivo y recomendaciones personalizadas.
-
-```
-Entregables:
-├── Insights inteligentes
-│   ├── "Gastaste 23% más que el mes pasado en..."
-│   ├── "Tu promedio de luz es S/ 80, este mes es S/ 128"
-│   └── "Considera reducir X para alcanzar meta"
-├── Predicciones
-│   ├── Predicción de gastos variables
-│   ├── Predicción de flujo de caja próximo mes
-│   └── Alertas predictivas ("en 3 días vence X")
-├── Health Score v2
-│   ├── Score compuesto de salud financiera
-│   ├── Recomendaciones personalizadas
-│   └── Comparativa con usuarios similares
-├── Trends avanzados
-│   ├── Análisis por día de la semana
-│   ├── Análisis por época del mes
-│   └── Patrones de ahorro
-└── Comparativas con benchmarks
-```
+| Documento | Descripción |
+|-----------|-------------|
+| `financial-system-master.md` | Sistema completo (v2.0) |
+| `expansion-guide.md` | Cómo expandir sin romper |
+| `backend-analysis-and-methodology.md` | Análisis + metodología |
+| `firestore-architecture.md` | Schema Firestore (visión) |
 
 ---
 
-### FASE 4: Expansión + Personalización
-
-**Timeline**: 2027+
-
-```
-Entregables:
-├── Smart features
-│   ├── OCR de recibos (foto → dato)
-│   ├── Detección automática de categorías
-│   └── Sugerencias basadas en historial
-├── Open Banking (futuro)
-│   ├── Conexión con BCP, BBVA, Interbank
-│   ├── Importación automática de transacciones
-│   └── Saldo agregado
-├── Multi-dispositivo
-│   ├── Web + Mobile sync
-│   └── Wearables (Apple Watch)
-├── Features avanzados
-│   ├── Planificación de gastos anuales
-│   ├── Simulador de escenarios ("qué pasa si...")
-│   └── Objetivos con múltiples participantes
-└── Enterprise (futuro)
-    ├── Family/Team finance
-    ├── Advisors integration
-    └── Export para contadores
-```
-
----
-
-## Criterios de Éxito por Fase
-
-### Fase 2 - Criterios de Éxito
-
-| Criterio | Target |
-|----------|--------|
-| Onboarding completado por >80% de usuarios | >80% |
-| Usuario puede registrar ingreso en <30 segundos | <30s |
-| Usuario puede registrar gasto en <10 segundos | <10s |
-| Alertas de presupuesto accionables | >90% accurate |
-| Comparativa mensual visible | 100% de usuarios |
-| Flujo de caja con datos completos | >95% coverage |
-
-### Fase 3 - Criterios de Éxito
-
-| Criterio | Target |
-|----------|--------|
-| Insights generados automáticamente | >3 por usuario/mes |
-| Predicciones de gastos variables | >70% accuracy |
-| Health score visible | >60% usuarios |
-| Recomendaciones seguidas | >30% adopción |
-
----
-
-## Notas de Implementación
-
-### 1. Modelo de Datos Actualizado
-
-El nuevo sistema financiero requiere actualizar `firestore-architecture.md`:
-
-```typescript
-// Nuevas colecciones necesarias:
-- userProfiles (onboarding data)
-- incomeSources (múltiples ingresos)
-- expenses (dual system)
-- savingsInvestments
-- cashFlowHistory
-- alerts
-```
-
-### 2. UI/UX a Actualizar
-
-- Pantalla de onboarding (nueva)
-- Dashboard de flujo de caja (nueva)
-- Sección de ingresos (actualizar)
-- Sección de gastos (actualizar)
-- Calendario de pagos (nueva)
-- Panel de alertas (nueva)
-
-### 3. Componentes a Crear
-
-1. `OnboardingFlowComponent` - Flujo de preguntas
-2. `IncomeManagerComponent` - Gestión de ingresos
-3. `ExpenseManagerComponent` - Gestión dual de gastos
-4. `CashFlowDashboardComponent` - Vista de flujo
-5. `PaymentCalendarComponent` - Calendario de pagos
-6. `AlertsPanelComponent` - Panel de alertas
-
----
-
-## Resumen de Cambios vs Roadmap Original
-
-| Aspecto | Original | Actualizado |
-|----------|----------|-------------|
-| Onboarding | Basic (3 preguntas) | Completo (6 pasos + restricciones edad) |
-| Gastos | Solo categorías | Sistema dual (primordial/no primordial) |
-| Ingresos | Solo "sueldo" | Múltiples fuentes + deducciones |
-| Fechas | No había | Sistema de plazos + optimal day |
-| Comparativas | Fase 3 básico | En fase 2.4 (cash flow) |
-| Alertas | No había | Fases 2.5 y 3 |
-| Metas | Fase 4 simple | Fase 2.3 (ahorro/inversiones) |
-| Analytics | Fase 3 | Fase 3 (expandido + IA) |
-
----
-
-**El roadmap original sirve como base, pero el nuevo sistema financiero lo expande significativamente. La Fase 2 ahora es la más importante - es donde se construye la base del sistema financiero completo.**
+**Última actualización**: Mayo 2026  
+**Progreso**: ~60% del sistema completo
