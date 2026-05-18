@@ -286,18 +286,22 @@
 
 ---
 
-## 📊 MODELO DE DATOS (FORMATO DOCUMENTO)
+## 📊 ESTRUCTURA DE COLECCIONES (NoSQL)
 
-| Entidad | Relaciones | Cardinalidad |
-|---------|------------|--------------|
-| User | → Profile | 1:1 |
-| User | → IncomeSources | 1:N |
-| User | → Expenses | 1:N |
-| User | → Goals | 1:N |
-| User | → Months | 1:N |
-| Month | → Transactions | 1:N |
-| Month | → Budgets | 1:N (por categoría) |
-| Month | → FinancialState | 1:1 |
+```
+users/{userId}/
+├── profile/data                 ← 1 documento
+├── incomeSources/              ← N documentos (colección)
+├── expenses/                   ← N documentos (colección)
+├── goals/                      ← N documentos (colección)
+└── months/{monthId}/           ← N documentos (colección)
+    ├── transactions/           ← N documentos
+    ├── budgets/                ← N documentos (uno por categoría)
+    └── financialState          ← 1 documento
+```
+
+**Nota**: En NoSQL no existe "cardinalidad". 
+La "relación" es solo la ruta de acceso: `users/{uid}/months/2026-05/transactions`
 
 ---
 

@@ -3,18 +3,22 @@
 
 ---
 
-## Estado de Avance
+## Estado de Avance (Mayo 2026)
 
 | Fase | Estado | Completado |
 |------|--------|------------|
 | Fase 1: Foundation | ✅ COMPLETO | 100% |
-| Fase 2.1: Onboarding | ✅ COMPLETO | 100% (backend) |
+| Fase 2.1: Onboarding | ✅ COMPLETO | 100% |
 | Fase 2.2: Ingresos | ✅ COMPLETO | 100% |
 | Fase 2.3: Gastos Dual | ✅ COMPLETO | 100% |
 | Fase 2.4: Flujo Caja | ✅ COMPLETO | 100% |
-| Fase 2.5: Alertas | ⚠️ READY | 70% (backend listo, no activas) |
-| Fase 2.6: Goals | ⚠️ BÁSICO | 40% |
-| Fase 3: Analytics | ❌ PENDIENTE | 0% |
+| Fase 2.5: Alertas | ✅ COMPLETO | 100% (backend) |
+| Fase 2.6: Goals | ✅ COMPLETO | 100% |
+| Fase 3: Analytics | ✅ COMPLETO | 100% |
+| Fase 4: Reportes/Export | ✅ COMPLETO | 100% |
+| Fase 5: Offline Sync | ✅ COMPLETO | 100% |
+| **BACKEND** | **✅ COMPLETO** | **100%** |
+| UI/Front-end | 🔄 PENDIENTE | 0% |
 
 ---
 
@@ -56,33 +60,51 @@
 - [x] Disponible ahora vs esperado
 - [x] Comparativa: presupuesto vs actual
 
-#### 2.5 Alertas (PARCIAL - READY)
-- [x] Alerta: Presupuesto excedido (backend listo)
-- [x] Alerta: Pago vencido (backend listo)
-- [x] Alerta: Cambio de precio (backend listo)
+#### 2.5 Alertas (COMPLETO) ✅
+- [x] Alerta: Presupuesto excedido
+- [x] Alerta: Pago vencido
+- [x] Alerta: Cambio de precio
+- [x] Alertas centralizadas (8 tipos)
 - [ ] Alertas activas en UI (pendiente)
 
 #### 2.6 Goals (COMPLETO) ✅
-- [x] Goals básicos (1 meta)
 - [x] Goals múltiples (prioridad, categorías, contribuciones)
-- [x] Prioridades de goals (high, medium, low)
 - [x] Proyección de fecha (calculada automáticamente)
 - [x] Historial de contribuciones por goal
-- [x] Goals por categoría y prioridad
+
+#### 2.7 Comparativas (COMPLETO) ✅
+- [x] Comparativa mes vs mes anterior
+- [x] Tendencias de últimos N meses
+- [x] Comparativa por categoría
+
+#### 2.8 Month Rollover (COMPLETO) ✅
+- [x] Auto-crear mes nuevo
+- [x] Copiar budgets al mes siguiente
+- [x] Gestión de gastos recurrentes
+
+#### 2.9 Reportes/Export (COMPLETO) ✅
+- [x] Exportar a CSV
+- [x] Exportar a JSON
+- [x] Reporte completo
+
+#### 2.10 Offline Sync (COMPLETO) ✅
+- [x] Cache local con IndexedDB
+- [x] Sincronización automática
+- [x] Cola de cambios pendientes
 
 ---
 
 ## Pendiente de Implementar
 
-### Alta Prioridad
-1. **Goals múltiples** - permitir varias metas simultáneas
-2. **Budgets por categoría** - presupuesto específico por categoría
-3. **Alertas activas en UI** - mostrar alertas al usuario
+### Alta Prioridad (FRONT-END)
+1. **Alertas activas en UI** - mostrar alertas al usuario
+2. **Integrar datos reales en Dashboard**
+3. **Mostrar comparativas mensuales en UI**
 
 ### Media Prioridad
-4. **Comparativas mensuales** - este mes vs mes anterior
-5. **Calendario de pagos** - ver próximos pagos
-6. **Recordatorios** - notificaciones de vencimiento
+4. **Calendario de pagos** - ver próximos pagos
+5. **Recordatorios** - notificaciones de vencimiento
+6. **Testing unitario**
 
 ### Baja Prioridad
 7. **Analytics persistidos** - guardar analytics por mes
