@@ -95,6 +95,17 @@ export class FirebaseService {
     return monthId;
   }
 
+  // Get all months for user
+  async getUserMonths(userId: string): Promise<any[]> {
+    const q = query(
+      collection(this.firestore, `users/${userId}/months`),
+      orderBy('year', 'desc'),
+      orderBy('month', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
   // Get transactions from months structure
   async getTransactionsByMonth(userId: string, year: number, month: number) {
     const monthId = `${year}-${String(month).padStart(2, '0')}`;
@@ -127,6 +138,78 @@ export class FirebaseService {
     await this.updateFinancialState(userId, monthId);
     
     return txData;
+  }
+
+  // Update transaction in months structure
+  async updateTransaction(userId: string, transactionId: string, data: any): Promise<void> {
+    // Find the transaction to know its month by checking all months
+    // For now, we'll try the current month and previous months
+    const now = new Date();
+    let found = false;
+    
+    for (let i = 0; i <= 2; i++) {
+      let year = now.getFullYear();
+      let month = now.getMonth() + 1 - i;
+      if (month <= 0) {
+        month = 12 + month;
+        year = year - 1;
+      }
+      const monthId = `${year}-${String(month).padStart(2, '0')}`;
+      
+      const docRef = doc(this.firestore, `users/${userId}/months/${monthId}/transactions/${transactionId}`);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const txData = docSnap.data();
+        const monthId = this.getMonthId(new Date(txData['date']));
+        const updateRef = doc(this.firestore, `users/${userId}/months/${monthId}/transactions/${transactionId}`);
+        
+        await setDoc(updateRef, {
+          ...data,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        
+        await this.updateFinancialState(userId, monthId);
+        found = true;
+        break;
+      }
+    }
+    
+    if (!found) throw new Error('Transacción no encontrada');
+  }
+
+  // Delete transaction from months structure
+  async deleteTransaction(userId: string, transactionId: string): Promise<void> {
+    // Find the transaction to know its month
+    const now = new Date();
+    let found = false;
+    
+    for (let i = 0; i <= 2; i++) {
+      let year = now.getFullYear();
+      let month = now.getMonth() + 1 - i;
+      if (month <= 0) {
+        month = 12 + month;
+        year = year - 1;
+      }
+      const monthId = `${year}-${String(month).padStart(2, '0')}`;
+      
+      const docRef = doc(this.firestore, `users/${userId}/months/${monthId}/transactions/${transactionId}`);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const txData = docSnap.data();
+        const monthId = this.getMonthId(new Date(txData['date']));
+        const deleteRef = doc(this.firestore, `users/${userId}/months/${monthId}/transactions/${transactionId}`);
+        
+        await setDoc(deleteRef, { deletedAt: new Date().toISOString(), deleted: true }, { merge: true });
+        
+        await this.updateFinancialState(userId, monthId);
+        found = true;
+        break;
+      }
+    }
+    
+    if (!found) throw new Error('Transacción no encontrada');
   }
 
   // Get financial state for a month

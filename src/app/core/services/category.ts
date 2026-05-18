@@ -34,16 +34,8 @@ export class CategoryService {
   }
 
   async seedDefaultCategories(): Promise<void> {
-    const userId = this.authService.getUserId();
-    if (!userId) return;
-
-    const existing = await this.getAll();
-    if (existing.length > 0) return;
-
-    const batch: Promise<void>[] = DEFAULT_CATEGORIES.map(cat => 
-      this.firebase.createCategory(userId, cat as any)
-    );
-    await Promise.all(batch);
+    // OBSOLETE - disabled, use new expense/budget system instead
+    return;
   }
 
   async create(payload: Omit<Category, 'id' | 'userId' | 'createdAt'>): Promise<Category> {

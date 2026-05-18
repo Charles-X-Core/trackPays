@@ -67,5 +67,6 @@ Se implementó sistema de presupuesto por categoría con seguimiento de gastado 
 
 ## Siguiente
 
-- Alertas activas en UI
-- Comparativas mensuales
+- ~~Alertas activas en UI~~ → Completado en milestone #007
+- ~~Comparativas mensuales~~ → Completado en milestone #007
+- ✅ BACKEND 100% COMPLETO

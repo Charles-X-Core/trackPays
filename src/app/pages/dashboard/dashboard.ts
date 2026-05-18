@@ -6,6 +6,7 @@ import { Auth } from '../../core/services/auth';
 import { TransactionService } from '../../core/services/transaction';
 import { CategoryService } from '../../core/services/category';
 import { GoalService } from '../../core/services/goal';
+// Debug services removed
 import { Transaction } from '../../core/models/transaction.model';
 import { SavingGoal } from '../../core/models/goal.model';
 import { Category } from '../../core/models/category.model';
@@ -23,6 +24,7 @@ export class DashboardComponent implements OnInit {
   private transactionService = inject(TransactionService);
   private categoryService    = inject(CategoryService);
   private goalService        = inject(GoalService);
+  
 
   // Estado
   isLoading      = signal(true);
@@ -81,8 +83,6 @@ export class DashboardComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await this.categoryService.seedDefaultCategories();
-    await this.goalService.seedGoal();
     await this.loadData();
   }
 

@@ -47,11 +47,31 @@ export class TransactionService {
   }
 
   async update(id: string, payload: Partial<TransactionPayload>): Promise<Transaction> {
-    throw new Error('Not implemented yet');
+    const userId = this.authService.getUserId();
+    if (!userId) throw new Error('No autenticado');
+
+    const data: any = {
+      ...payload,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Include ruleType for financial calculations
+    if (payload.type) {
+      data.ruleType = payload.type === 'income' ? 'income' : 'need';
+    }
+
+    await this.firebase.updateTransaction(userId, id, data);
+    return (await this.getByMonth(
+      new Date().getFullYear(), 
+      new Date().getMonth() + 1
+    )).find(t => t.id === id) as Transaction;
   }
 
   async delete(id: string): Promise<void> {
-    throw new Error('Not implemented yet');
+    const userId = this.authService.getUserId();
+    if (!userId) throw new Error('No autenticado');
+
+    await this.firebase.deleteTransaction(userId, id);
   }
 
   calcTotals(transactions: Transaction[]) {
