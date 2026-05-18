@@ -217,10 +217,18 @@ PREGUNTAS COMUNES:
 
 ### Servicios principales:
 - `FirebaseService` - Conexión Firestore
-- `TransactionService` - Transacciones
-- `IncomeService` - Ingresos
-- `ExpenseService` - Gastos
+- `TransactionService` - Transacciones (CRUD completo)
+- `IncomeService` - Ingresos múltiples con fechas
+- `ExpenseService` - Sistema dual de gastos
+- `BudgetService` - Presupuestos por categoría
+- `GoalService` - Metas de ahorro múltiples
+- `ComparisonService` - Comparativas mensuales
+- `AlertsService` - Alertas centralizadas
+- `MonthRolloverService` - Gestión automática de meses
+- `ReportService` - Exportación de datos
+- `OfflineSyncService` - Sincronización offline
 - `OnboardingService` - Onboarding adaptativo
+- `AuthService` - Autenticación
 
 ---
 
