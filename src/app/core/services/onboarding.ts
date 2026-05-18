@@ -99,18 +99,20 @@ export class OnboardingService {
     const now = new Date().toISOString();
 
     // 根据就业类型创建收入来源
+    const ans = answers as any;
+    
     switch (employmentType) {
       case 'employee':
-        if (answers.salary_amount) {
+        if (ans['salary_amount']) {
           await this.firebase.createIncomeSource(userId, {
             type: 'salary',
             name: 'Salario',
-            amount: answers.salary_amount,
+            amount: ans['salary_amount'],
             frequency: 'monthly',
-            paymentDayOfMonth: parseInt(answers.salary_day) || 15,
+            paymentDayOfMonth: parseInt(ans['salary_day']) || 15,
             deductions: {
-              afpPercent: answers.has_afp ? 13 : 0,
-              insurancePercent: answers.has_health_insurance ? 4 : 0
+              afpPercent: ans['has_afp'] ? 13 : 0,
+              insurancePercent: ans['has_health_insurance'] ? 4 : 0
             },
             isRecurring: true,
             createdAt: now,
@@ -120,15 +122,15 @@ export class OnboardingService {
         break;
 
       case 'freelancer':
-        if (answers.avg_monthly_income) {
+        if (ans['avg_monthly_income']) {
           await this.firebase.createIncomeSource(userId, {
             type: 'freelance',
             name: 'Ingreso freelance',
-            amount: answers.avg_monthly_income,
-            frequency: answers.income_frequency === 'irregular' ? 'monthly' : answers.income_frequency,
-            paymentDayOfMonth: null, // Variable
-            isRecurring: answers.income_frequency !== 'irregular',
-            notes: answers.income_type,
+            amount: ans['avg_monthly_income'],
+            frequency: ans['income_frequency'] === 'irregular' ? 'monthly' : ans['income_frequency'],
+            paymentDayOfMonth: null,
+            isRecurring: ans['income_frequency'] !== 'irregular',
+            notes: ans['income_type'],
             createdAt: now,
             updatedAt: now
           });
@@ -136,15 +138,15 @@ export class OnboardingService {
         break;
 
       case 'business_owner':
-        if (answers.avg_monthly_profit) {
+        if (ans['avg_monthly_profit']) {
           await this.firebase.createIncomeSource(userId, {
             type: 'business',
-            name: answers.business_name || 'Negocio',
-            amount: answers.avg_monthly_profit,
+            name: ans['business_name'] || 'Negocio',
+            amount: ans['avg_monthly_profit'],
             frequency: 'monthly',
-            paymentDayOfMonth: null, // Variable
+            paymentDayOfMonth: null,
             isRecurring: true,
-            notes: answers.business_type,
+            notes: ans['business_type'],
             createdAt: now,
             updatedAt: now
           });
@@ -152,15 +154,15 @@ export class OnboardingService {
         break;
 
       case 'retired':
-        if (answers.pension_amount) {
+        if (ans['pension_amount']) {
           await this.firebase.createIncomeSource(userId, {
             type: 'afp',
             name: 'Pensión / Jubilación',
-            amount: answers.pension_amount,
+            amount: ans['pension_amount'],
             frequency: 'monthly',
-            paymentDayOfMonth: parseInt(answers.pension_day) || 1,
+            paymentDayOfMonth: parseInt(ans['pension_day']) || 1,
             isRecurring: true,
-            notes: answers.pension_source,
+            notes: ans['pension_source'],
             createdAt: now,
             updatedAt: now
           });
@@ -168,15 +170,15 @@ export class OnboardingService {
         break;
 
       case 'student':
-        if (answers.monthly_amount) {
+        if (ans['monthly_amount']) {
           await this.firebase.createIncomeSource(userId, {
             type: 'allowance',
-            name: answers.income_source === 'parents' ? 'Ayuda familiar' : 'Ingreso estudiante',
-            amount: answers.monthly_amount,
+            name: ans['income_source'] === 'parents' ? 'Ayuda familiar' : 'Ingreso estudiante',
+            amount: ans['monthly_amount'],
             frequency: 'monthly',
-            paymentDayOfMonth: 1, // Typically start of month
+            paymentDayOfMonth: 1,
             isRecurring: true,
-            notes: answers.income_source,
+            notes: ans['income_source'],
             createdAt: now,
             updatedAt: now
           });
@@ -184,22 +186,21 @@ export class OnboardingService {
         break;
 
       case 'unemployed':
-        // No income sources, but we track their situation
-        if (answers.savings_amount) {
-          await this.firebase.setInitialBalance(userId, answers.savings_amount);
+        if (ans['savings_amount']) {
+          await this.firebase.setInitialBalance(userId, ans['savings_amount']);
         }
         break;
 
       case 'other':
-        if (answers.monthly_amount) {
+        if (ans['monthly_amount']) {
           await this.firebase.createIncomeSource(userId, {
             type: 'other',
             name: 'Otros ingresos',
-            amount: answers.monthly_amount,
+            amount: ans['monthly_amount'],
             frequency: 'monthly',
             paymentDayOfMonth: null,
             isRecurring: true,
-            notes: answers.income_source,
+            notes: ans['income_source'],
             createdAt: now,
             updatedAt: now
           });

@@ -96,7 +96,7 @@ export class ExpenseService {
   }
 
   // Get defaults for primordial expenses
-  getDefaultPrimordialExpenses(): Omit<ExpensePayload, 'name' | 'budgetedAmount' | 'dueDayOfMonth'>[] {
+  getDefaultPrimordialExpenses(): Partial<ExpensePayload>[] {
     return [
       {
         isPrimordial: true,
@@ -168,7 +168,7 @@ export class ExpenseService {
   }
 
   // Get defaults for non-primordial expenses
-  getDefaultNonPrimordialExpenses(): Omit<ExpensePayload, 'name' | 'budgetedAmount' | 'dueDayOfMonth'>[] {
+  getDefaultNonPrimordialExpenses(): Partial<ExpensePayload>[] {
     return [
       {
         isPrimordial: false,

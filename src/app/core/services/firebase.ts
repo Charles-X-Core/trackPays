@@ -298,7 +298,7 @@ export class FirebaseService {
   }
 
   // Get single goal
-  async getGoalById(userId: string, goalId: string) {
+  async getGoalById(userId: string, goalId: string): Promise<any> {
     const docRef = doc(this.firestore, `users/${userId}/goals/${goalId}`);
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
@@ -331,7 +331,7 @@ export class FirebaseService {
 
   // Add contribution to goal
   async addContribution(userId: string, goalId: string, amount: number, note?: string) {
-    const goal = await this.getGoalById(userId, goalId);
+    const goal: any = await this.getGoalById(userId, goalId);
     if (!goal) throw new Error('Goal not found');
     
     const contribution = {
@@ -341,8 +341,8 @@ export class FirebaseService {
       note
     };
     
-    const newAmount = goal.currentAmount + amount;
-    const isCompleted = newAmount >= goal.targetAmount;
+    const newAmount = (goal.currentAmount || 0) + amount;
+    const isCompleted = newAmount >= (goal.targetAmount || 0);
     
     const docRef = doc(this.firestore, `users/${userId}/goals/${goalId}`);
     await setDoc(docRef, {
@@ -771,13 +771,13 @@ export class FirebaseService {
     
     if (!docSnap.exists()) return;
     
-    const budget = docSnap.data();
-    const percentageUsed = Math.round((actualAmount / budget.budgetedAmount) * 100);
-    const remainingAmount = Math.max(0, budget.budgetedAmount - actualAmount);
+    const budget: any = docSnap.data();
+    const percentageUsed = Math.round((actualAmount / budget['budgetedAmount']) * 100);
+    const remainingAmount = Math.max(0, budget['budgetedAmount'] - actualAmount);
     
     let status = 'on_track';
     if (percentageUsed >= 100) status = 'exceeded';
-    else if (percentageUsed >= budget.alertThreshold) status = 'at_risk';
+    else if (percentageUsed >= (budget['alertThreshold'] || 80)) status = 'at_risk';
     else if (percentageUsed === 0) status = 'unused';
     
     // Add to history

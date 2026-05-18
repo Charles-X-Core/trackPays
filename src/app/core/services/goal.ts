@@ -122,6 +122,24 @@ export class GoalService {
   // Métodos Legacy (compatibilidad)
   // ============================================
   
+  async updateContribution(monthlyContribution: number): Promise<SavingGoal> {
+    // Legacy method - just use addContribution with 0 and a note about monthly change
+    const goals = await this.getAll();
+    if (goals.length === 0) throw new Error('No hay metas');
+    
+    // Update the first active goal
+    const goal = goals[0];
+    return this.update(goal.id, { monthlyContribution });
+  }
+
+  async updateTarget(targetAmount: number): Promise<SavingGoal> {
+    const goals = await this.getAll();
+    if (goals.length === 0) throw new Error('No hay metas');
+    
+    const goal = goals[0];
+    return this.update(goal.id, { targetAmount });
+  }
+  
   async get(): Promise<SavingGoal | null> {
     const userId = this.authService.getUserId();
     if (!userId) return null;
