@@ -1,0 +1,243 @@
+<div class="expenses-page" [class.sidebar-collapsed]="layoutService.sidebarCollapsed()">
+  <div class="page-header">
+    <div class="header-left">
+      <a routerLink="/dashboard" class="back-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <h1>Gastos</h1>
+    </div>
+    <span class="month-label">{{ currentMonth }}</span>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading">Cargando...</div>
+  } @else {
+    <div class="expenses-layout" [class.show-panel]="layoutService.sidebarCollapsed()">
+      <!-- Main Content (70%) -->
+      <div class="main-content">
+        <!-- Resumen -->
+        <div class="summary-cards">
+          <div class="card card--total">
+            <div class="card__header">
+              <span class="card__label">Total Gastado</span>
+              <span class="card__subtitle">Este mes</span>
+            </div>
+            <div class="card__value">{{ formatSol(totalExpenses) }}</div>
+            <div class="card__compare" [class.positive]="monthChange <= 0" [class.negative]="monthChange > 0">
+              {{ monthChange >= 0 ? '+' : '' }}{{ monthChange.toFixed(1) }}% vs {{ lastMonthName }}
+            </div>
+          </div>
+
+          <div class="card card--primordial">
+            <div class="card__header">
+              <span class="card__label">Gasto Primordial</span>
+              <span class="card__subtitle">Esencial</span>
+            </div>
+            <div class="card__value">{{ formatSol(primordialTotal) }}</div>
+            <div class="card__sub">{{ getPrimordialPct() }}% del total</div>
+          </div>
+
+          <div class="card card--non-primordial">
+            <div class="card__header">
+              <span class="card__label">Gasto No Esencial</span>
+              <span class="card__subtitle">No esencial</span>
+            </div>
+            <div class="card__value">{{ formatSol(nonPrimordialTotal) }}</div>
+            <div class="card__sub">{{ getNonPrimordialPct() }}% del total</div>
+          </div>
+        </div>
+
+        <!-- Categorías -->
+        <div class="categories-section">
+          <h2>Por Categoría</h2>
+          <div class="categories-grid">
+            @for (cat of categoryBreakdown; track cat.category) {
+              <div class="category-bar" [class.primordial]="cat.isPrimordial" [class.non-primordial]="!cat.isPrimordial">
+                <div class="category-info">
+                  <span class="category-name">{{ getCategoryLabel(cat.category) }}</span>
+                  <span class="category-pct">{{ cat.pct.toFixed(0) }}%</span>
+                </div>
+                <div class="category-bar__track">
+                  <div class="category-bar__fill" [style.width.%]="cat.pct" [style.background]="getCategoryColor(cat.category)"></div>
+                </div>
+                <span class="category-amount">{{ formatSol(cat.total) }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Lista de Gastos por Día -->
+        <div class="expenses-section">
+          <h2>Historial de Gastos</h2>
+          @if (dailyExpenses().length === 0) {
+            <div class="empty-state">
+              <p>No hay gastos este mes</p>
+            </div>
+          } @else {
+            @for (day of dailyExpenses(); track day.date) {
+              <div class="day-group">
+                <div class="day-header">
+                  <span class="day-name">{{ day.dayName }}</span>
+                  <span class="day-total">{{ formatSol(day.total) }}</span>
+                </div>
+                <div class="transactions-list">
+                  @for (tx of day.transactions; track tx.id) {
+                    <div class="transaction-item">
+                      <div class="tx-info">
+                        <span class="tx-desc">{{ tx.description || 'Gasto' }}</span>
+                        <span class="tx-category">{{ getCategoryLabel(tx.categoryId || 'other') }}</span>
+                      </div>
+                      <span class="tx-amount">{{ formatSol(absAmount(tx.amount)) }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <!-- Right Panel: Payment Status (30%) - only when sidebar is collapsed -->
+      @if (layoutService.sidebarCollapsed()) {
+        <div class="payment-panel">
+          <div class="panel-header">
+            <h3>Pagos y Suscripciones</h3>
+            <button class="btn-demo" (click)="seedDemoData()" [disabled]="isSeedingData">
+              {{ isSeedingData ? 'Cargando...' : 'Cargar Demo' }}
+            </button>
+            <button class="btn-add" (click)="openAddModal()">Agregar</button>
+          </div>
+
+          <!-- Filtro por Categorías -->
+          <div class="filter-bar">
+            <button class="filter-btn" [class.active]="filterCategory === ''" (click)="setCategoryFilter('')">Todas</button>
+            @for (cat of getActiveCategories(); track cat) {
+              <button class="filter-btn" [class.active]="filterCategory === cat" (click)="setCategoryFilter(cat)">
+                {{ getCategoryIcon(cat) }} {{ getCategoryLabel(cat) }}
+              </button>
+            }
+          </div>
+          
+          <!-- Porcentaje General -->
+          <div class="percentage-summary">
+            <div class="percentage-bar">
+              <div class="percentage-fill" [style.width.%]="getGeneralPercentage()"></div>
+            </div>
+            <span class="percentage-text">{{ getGeneralPercentage().toFixed(0) }}% pagado</span>
+          </div>
+
+          <!-- Lista de Gastos por Categoría -->
+          <div class="payment-section">
+            @if (getFilteredExpenses().length === 0) {
+              <div class="empty-panel"><p>No hay gastos en esta categoría</p></div>
+            } @else {
+              @for (group of getExpensesByCategory(); track group.category) {
+                <div class="category-group">
+                  <div class="section-title">
+                    <span class="section-icon"></span>
+                    <span>{{ getCategoryLabel(group.category) }}</span>
+                    <span class="section-pct">{{ getCategoryGroupPercentage(group).toFixed(0) }}%</span>
+                  </div>
+                  <div class="payment-table">
+                    @for (exp of group.expenses; track exp.id) {
+                      <div class="payment-item" [class.paid]="exp.status === 'paid'" [class.overdue]="exp.status === 'overdue'">
+                        <div class="payment-info">
+                          <span class="payment-name">{{ exp.name }}</span>
+                          <div class="payment-meta">
+                            @if (exp.dueDayOfMonth) { <span class="payment-due">Vence día {{ exp.dueDayOfMonth }}</span> }
+                            @if (exp.isSubscription) { <span class="payment-tag subscription">Suscripción</span> }
+                            @if (exp.isVariable) { <span class="payment-tag variable">Variable</span> }
+                          </div>
+                        </div>
+                        <div class="payment-amount">
+                          <span class="budget">{{ formatSol(exp.budgetedAmount) }}</span>
+                          <span class="status" [class.status--paid]="exp.status === 'paid'" [class.status--pending]="exp.status === 'pending'" [class.status--overdue]="exp.status === 'overdue'">{{ getStatusLabel(exp.status) }}</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Modal Agregar/Editar Gasto -->
+@if (showModal()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ editingExpense() ? 'Editar' : 'Agregar' }} Gasto</h3>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nombre del gasto</label>
+          <input type="text" [(ngModel)]="formName" placeholder="ej. Luz, Netflix, Alquiler">
+        </div>
+        
+        <div class="form-group">
+          <label>Presupuesto (S/)</label>
+          <input type="number" [(ngModel)]="formAmount" placeholder="0.00" min="0">
+        </div>
+
+        <div class="form-group">
+          <label>Día de vencimiento (opcional)</label>
+          <input type="number" [(ngModel)]="formDueDay" placeholder="1-31" min="1" max="31">
+        </div>
+
+        <div class="form-group">
+          <label>Tipo de gasto</label>
+          <div class="toggle-group">
+            <button class="toggle-btn" [class.active]="formIsPrimordial" (click)="formIsPrimordial = true">Primordial</button>
+            <button class="toggle-btn" [class.active]="!formIsPrimordial" (click)="formIsPrimordial = false">No Esencial</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Categoría</label>
+          <select [(ngModel)]="formCategory">
+            @if (formIsPrimordial) {
+              <option value="housing">Vivienda</option>
+              <option value="utilities">Servicios</option>
+              <option value="transport">Transporte</option>
+              <option value="health">Salud</option>
+              <option value="groceries">Supermercado</option>
+              <option value="education">Educación</option>
+              <option value="debt">Deudas</option>
+            } @else {
+              <option value="streaming">Streaming</option>
+              <option value="dining_out">Restaurantes</option>
+              <option value="entertainment">Entretenimiento</option>
+              <option value="shopping">Compras</option>
+              <option value="subscriptions">Suscripciones</option>
+              <option value="travel">Viajes</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group form-group--checkbox">
+          <label>
+            <input type="checkbox" [(ngModel)]="formIsSubscription"> Es suscripción mensual
+          </label>
+        </div>
+
+        <div class="form-group form-group--checkbox">
+          <label>
+            <input type="checkbox" [(ngModel)]="formIsVariable"> Monto variable (ej. luz, agua)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn--outline" (click)="closeModal()">Cancelar</button>
+        <button class="btn btn--primary" (click)="saveExpense()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}

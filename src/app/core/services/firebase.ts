@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User } from '@angular/fire/auth';
+import { Auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup } from '@angular/fire/auth';
 import { Firestore, collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, limit, writeBatch } from '@angular/fire/firestore';
 
 @Injectable({
@@ -8,6 +8,10 @@ import { Firestore, collection, doc, setDoc, getDoc, getDocs, query, where, orde
 export class FirebaseService {
   private auth = inject(Auth);
   private firestore = inject(Firestore);
+
+  constructor() {
+    this.auth.languageCode = 'es';
+  }
 
   // ============================================
   // AUTH METHODS
@@ -29,11 +33,21 @@ export class FirebaseService {
   }
 
   async signUp(email: string, password: string) {
-    return createUserWithEmailAndPassword(this.auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
+    // Enviar verificación pero no bloquear login
+    if (userCredential.user) {
+      // No requerimos verificación para development
+    }
+    return userCredential;
   }
 
   async signOut() {
     return signOut(this.auth);
+  }
+
+  async signInWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    return signInWithPopup(this.auth, provider);
   }
 
   // ============================================
@@ -54,13 +68,13 @@ export class FirebaseService {
   // USER PROFILE (NEW - Onboarding)
   // ============================================
   async getUserProfileComplete(userId: string) {
-    const docRef = doc(this.firestore, `users/${userId}/profile`);
+    const docRef = doc(this.firestore, `users/${userId}/profile/data`);
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : null;
   }
 
   async saveUserProfile(userId: string, data: any) {
-    const docRef = doc(this.firestore, `users/${userId}/profile`);
+    const docRef = doc(this.firestore, `users/${userId}/profile/data`);
     return setDoc(docRef, data, { merge: true });
   }
 
@@ -495,8 +509,7 @@ export class FirebaseService {
   async getActiveIncomeSources(userId: string) {
     const q = query(
       collection(this.firestore, `users/${userId}/incomeSources`),
-      where('isActive', '==', true),
-      orderBy('name')
+      where('isActive', '==', true)
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -546,7 +559,7 @@ export class FirebaseService {
   
   // Get initial balance
   async getInitialBalance(userId: string): Promise<number> {
-    const docRef = doc(this.firestore, `users/${userId}/profile`);
+    const docRef = doc(this.firestore, `users/${userId}/profile/data`);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
@@ -555,9 +568,8 @@ export class FirebaseService {
     return 0;
   }
 
-  // Set initial balance
   async setInitialBalance(userId: string, amount: number) {
-    const docRef = doc(this.firestore, `users/${userId}/profile`);
+    const docRef = doc(this.firestore, `users/${userId}/profile/data`);
     await setDoc(docRef, { initialBalance: amount }, { merge: true });
   }
 
@@ -658,8 +670,7 @@ export class FirebaseService {
   async getActiveExpenses(userId: string): Promise<any[]> {
     const q = query(
       collection(this.firestore, `users/${userId}/expenses`),
-      where('status', 'in', ['pending', 'partial']),
-      orderBy('dueDayOfMonth')
+      where('isActive', '==', true)
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -684,6 +695,7 @@ export class FirebaseService {
       ...data,
       id: docRef.id,
       userId,
+      isActive: true,
       actualAmount: 0,
       status: 'pending',
       createdAt: now,
@@ -977,5 +989,49 @@ export class FirebaseService {
       alerts,
       lastUpdated: new Date().toISOString()
     };
+  }
+
+  // ============================================
+  // SURPLUS & NOTIFICATIONS
+  // ============================================
+  async saveSurplusRecord(userId: string, id: string, data: any) {
+    const docRef = doc(this.firestore, `users/${userId}/surplus/${id}`);
+    return setDoc(docRef, data, { merge: true });
+  }
+
+  async getSurplusRecord(userId: string, id: string): Promise<any> {
+    const docRef = doc(this.firestore, `users/${userId}/surplus/${id}`);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() : null;
+  }
+
+  async getSurplusHistory(userId: string): Promise<any[]> {
+    const colRef = collection(this.firestore, `users/${userId}/surplus`);
+    const q = query(colRef, orderBy('calculatedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  async saveNotification(userId: string, notification: any) {
+    const id = `${notification.year}-${String(notification.month).padStart(2, '0')}-${Date.now()}`;
+    const docRef = doc(this.firestore, `users/${userId}/notifications/${id}`);
+    return setDoc(docRef, notification, { merge: true });
+  }
+
+  async getNotifications(userId: string, unreadOnly: boolean = false): Promise<any[]> {
+    const colRef = collection(this.firestore, `users/${userId}/notifications`);
+    let q = query(colRef, orderBy('createdAt', 'desc'), limit(20));
+    
+    if (unreadOnly) {
+      q = query(colRef, where('isRead', '==', false), orderBy('createdAt', 'desc'), limit(20));
+    }
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  async markNotificationAsRead(userId: string, notificationId: string) {
+    const docRef = doc(this.firestore, `users/${userId}/notifications/${notificationId}`);
+    return setDoc(docRef, { isRead: true }, { merge: true });
   }
 }

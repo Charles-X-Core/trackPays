@@ -6,10 +6,11 @@ import { Auth } from '../../core/services/auth';
 import { TransactionService } from '../../core/services/transaction';
 import { CategoryService } from '../../core/services/category';
 import { GoalService } from '../../core/services/goal';
-// Debug services removed
+import { IncomeService } from '../../core/services/income';
 import { Transaction } from '../../core/models/transaction.model';
 import { SavingGoal } from '../../core/models/goal.model';
 import { Category } from '../../core/models/category.model';
+import { MonthlyIncome } from '../../core/models/income.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,27 +25,49 @@ export class DashboardComponent implements OnInit {
   private transactionService = inject(TransactionService);
   private categoryService    = inject(CategoryService);
   private goalService        = inject(GoalService);
+  private incomeService      = inject(IncomeService);
   
-
-  // Estado
   isLoading      = signal(true);
   transactions   = signal<Transaction[]>([]);
   goal           = signal<SavingGoal | null>(null);
   categories     = signal<Category[]>([]);
   showQuickEntry = signal(false);
+  monthlyIncome  = signal<MonthlyIncome | null>(null);
 
-  // Mes actual
   now       = new Date();
   monthName = this.now.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
+  currentMonthName = this.now.toLocaleDateString('es-PE', { month: 'long' });
+  lastMonthName = new Date(this.now.getFullYear(), this.now.getMonth() - 1, 1).toLocaleDateString('es-PE', { month: 'long' });
 
-  // Regla 50/30/20 basada en S/ 1,200
-  readonly income    = 1200;
-  readonly limits    = { need: 600, want: 360, saving: 240 };
+  get income(): number {
+    return this.monthlyIncome()?.totalBudgeted ?? 0;
+  }
+
+  get limits() {
+    return { 
+      need: this.income * 0.5, 
+      want: this.income * 0.3, 
+      saving: this.income * 0.2 
+    };
+  }
 
   // Calculados
   totals    = { income: 0, expenses: 0, balance: 0 };
   byRule    = { need: 0, want: 0, saving: 0 };
   byCategory: { name: string; icon: string; total: number }[] = [];
+
+  // Historial para gráficos (últimos 6 meses)
+  monthlyHistory = signal<{ month: number; year: number; income: number; expenses: number; savings: number }[]>([]);
+  
+  // Comparación con mes anterior
+  incomeChange = 0;
+  expenseChange = 0;
+  savingsChange = 0;
+
+  // Sobrante del mes
+  monthlySurplus = 0;
+  lastMonthSurplus = 0;
+  surplusTrend: 'up' | 'down' | 'stable' = 'stable';
 
   // Quick entry form
   quickAmount      = '';
@@ -82,6 +105,119 @@ export class DashboardComponent implements OnInit {
     return '#6366f1';
   }
 
+  // Cargar historial de meses para gráficos
+  async loadMonthlyHistory() {
+    const history: { month: number; year: number; income: number; expenses: number; savings: number }[] = [];
+    const now = new Date();
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const txs = await this.transactionService.getByMonth(d.getFullYear(), d.getMonth() + 1);
+      const totals = this.transactionService.calcTotals(txs);
+      
+      history.push({
+        month: d.getMonth() + 1,
+        year: d.getFullYear(),
+        income: totals.income,
+        expenses: Math.abs(totals.expenses),
+        savings: totals.balance
+      });
+    }
+
+    this.monthlyHistory.set(history);
+  }
+
+  // Comparación vs mes anterior
+  calculateMonthOverMonth() {
+    const history = this.monthlyHistory();
+    if (history.length < 2) return;
+
+    const current = history[history.length - 1];
+    const previous = history[history.length - 2];
+
+    this.incomeChange = previous.income > 0 ? ((current.income - previous.income) / previous.income) * 100 : 0;
+    this.expenseChange = previous.expenses > 0 ? ((current.expenses - previous.expenses) / previous.expenses) * 100 : 0;
+    this.savingsChange = previous.savings > 0 ? ((current.savings - previous.savings) / Math.abs(previous.savings)) * 100 : 0;
+
+    // Calcular tendencia del sobrante
+    this.lastMonthSurplus = previous.savings;
+    if (this.monthlySurplus > this.lastMonthSurplus) {
+      this.surplusTrend = 'up';
+    } else if (this.monthlySurplus < this.lastMonthSurplus) {
+      this.surplusTrend = 'down';
+    } else {
+      this.surplusTrend = 'stable';
+    }
+  }
+
+  // Generar path SVG para gráfico de línea
+  getChartPath(values: number[], height: number = 40, padding: number = 5): string {
+    const data = values.filter(v => v > 0);
+    if (data.length < 2) return '';
+    
+    const max = Math.max(...data);
+    const min = Math.min(...data);
+    const range = max - min || 1;
+    const width = 200 - padding * 2;
+    const step = width / (data.length - 1);
+
+    return data.map((v, i) => 
+      `${i === 0 ? 'M' : 'L'} ${i * step + padding},${height - padding - ((v - min) / range) * (height - padding * 2)}`
+    ).join(' ');
+  }
+
+  // Generar área bajo la curva
+  getChartArea(values: number[], height: number = 40, padding: number = 5): string {
+    const path = this.getChartPath(values, height, padding);
+    if (!path) return '';
+    const width = 200 - padding * 2;
+    return `${path} L ${width + padding},${height - padding} L ${padding},${height - padding} Z`;
+  }
+
+  // Mini chart para métricas pequeñas (60x20 viewBox)
+  getMiniChartPath(values: number[]): string {
+    const data = values.filter(v => v >= 0);
+    if (data.length < 2) return '';
+    
+    const max = Math.max(...data, 1);
+    const min = Math.min(...data);
+    const range = max - min || 1;
+    const width = 58;
+    const height = 18;
+    const padding = 2;
+    const step = width / (data.length - 1);
+
+    return data.map((v, i) => 
+      `${i === 0 ? 'M' : 'L'} ${i * step + padding},${height - padding - ((v - min) / range) * (height - padding * 2)}`
+    ).join(' ');
+  }
+
+  // Getter para paths dinámicos
+  get balanceChartPath(): string {
+    const values = this.monthlyHistory().map(h => h.savings);
+    return this.getChartPath(values);
+  }
+
+  get balanceChartArea(): string {
+    const values = this.monthlyHistory().map(h => h.savings);
+    return this.getChartArea(values);
+  }
+
+  get incomeChartPath(): string {
+    const values = this.monthlyHistory().map(h => h.income);
+    return this.getChartPath(values);
+  }
+
+  get expenseChartPath(): string {
+    const values = this.monthlyHistory().map(h => h.expenses);
+    return this.getChartPath(values);
+  }
+
+  get savingsChartPath(): string {
+    const values = this.monthlyHistory().map(h => h.savings > 0 ? h.savings : 0);
+    return this.getChartPath(values);
+  }
+
   async ngOnInit() {
     await this.loadData();
   }
@@ -89,19 +225,30 @@ export class DashboardComponent implements OnInit {
   async loadData() {
     this.isLoading.set(true);
     try {
-      const [txs, goal, cats] = await Promise.all([
+      const [txs, goal, cats, income] = await Promise.all([
         this.transactionService.getByMonth(this.now.getFullYear(), this.now.getMonth() + 1),
         this.goalService.get(),
-        this.categoryService.getAll()
+        this.categoryService.getAll(),
+        this.incomeService.getMonthlyIncome(this.now.getFullYear(), this.now.getMonth() + 1)
       ]);
 
       this.transactions.set(txs);
       this.goal.set(goal);
       this.categories.set(cats);
+      this.monthlyIncome.set(income as MonthlyIncome);
 
       this.totals     = this.transactionService.calcTotals(txs);
       this.byRule     = this.transactionService.calcByRuleType(txs);
       this.byCategory = this.transactionService.calcByCategory(txs);
+
+      // Calcular sobrante del mes
+      this.monthlySurplus = this.totals.income - this.totals.expenses;
+
+      // Cargar historial para gráficos
+      await this.loadMonthlyHistory();
+      
+      // Calcular comparación con mes anterior
+      this.calculateMonthOverMonth();
     } finally {
       this.isLoading.set(false);
     }

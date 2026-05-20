@@ -2,9 +2,9 @@
 
 .page {
   min-height: 100vh;
-  background: #0f1117;
-  font-family: 'DM Sans', sans-serif;
-  color: #f1f5f9;
+  background: #0E1212;
+  font-family: 'Inter', sans-serif;
+  color: #F5F7F5;
   padding-bottom: 4rem;
 }
 
@@ -20,11 +20,14 @@
 }
 
 .btn-back {
-  color: #6366f1;
+  color: #2FA46A;
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
-  &:hover { text-decoration: underline; }
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  &:hover { color: #F5F7F5; }
 }
 
 // ─── Filtros ─────────────────────────────────────────
@@ -37,16 +40,16 @@
 }
 
 .filter__month {
-  background: #16181f;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: #0D1B16;
+  border: 1px solid rgba(170, 181, 174, 0.15);
   border-radius: 10px;
   padding: 0.6rem 1rem;
-  color: #f1f5f9;
+  color: #F5F7F5;
   font-size: 0.9rem;
   font-family: inherit;
   outline: none;
   width: 100%;
-  &:focus { border-color: #6366f1; }
+  &:focus { border-color: #166B46; }
 }
 
 .filter__tabs {
@@ -56,19 +59,19 @@
   button {
     flex: 1;
     padding: 0.5rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(170, 181, 174, 0.08);
+    border: 1px solid rgba(170, 181, 174, 0.1);
     border-radius: 8px;
-    color: #64748b;
+    color: #AAB5AE;
     font-size: 0.82rem;
     font-family: inherit;
     cursor: pointer;
     transition: all 0.2s;
 
     &.active {
-      background: rgba(99,102,241,0.15);
-      border-color: #6366f1;
-      color: #a5b4fc;
+      background: rgba(22, 107, 70, 0.2);
+      border-color: #166B46;
+      color: #F5F7F5;
       font-weight: 600;
     }
   }
@@ -92,8 +95,8 @@
   }
 }
 
-.income  { color: #4ade80; }
-.expense { color: #f87171; }
+.income  { color: #2FA46A; }
+.expense { color: #ef4444; }
 
 // ─── Loading ─────────────────────────────────────────
 .loading {

@@ -1,0 +1,165 @@
+<div class="income-page">
+  <div class="page-header">
+    <div class="header-left">
+      <a routerLink="/dashboard" class="back-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <h1>Ingresos</h1>
+    </div>
+    <span class="month-label">{{ currentMonth }}</span>
+  </div>
+
+  @if (isLoading()) {
+    <div class="loading">Cargando...</div>
+  } @else {
+    <!-- Resumen -->
+    <div class="summary-cards">
+      <div class="card card--total">
+        <div class="card__header">
+          <span class="card__label">Ingresos Totales</span>
+          <span class="card__subtitle">Este mes</span>
+        </div>
+        <div class="card__value">{{ formatSol(totalMonthly) }}</div>
+        <div class="card__compare" [class.positive]="monthChange >= 0" [class.negative]="monthChange < 0">
+          {{ monthChange >= 0 ? '+' : '' }}{{ monthChange.toFixed(1) }}% vs {{ lastMonthName }}
+        </div>
+      </div>
+
+      <div class="card card--sources">
+        <div class="card__header">
+          <span class="card__label">Fuentes de Ingreso</span>
+        </div>
+        <div class="card__value">{{ incomeSources().length }}</div>
+        <div class="card__sub">{{ incomeSources().filter(s => s.isActive).length }} activas</div>
+      </div>
+    </div>
+
+    <!-- Lista de Fuentes -->
+    <div class="sources-section">
+      <div class="section-header">
+        <h2>Fuentes de Ingreso</h2>
+        <button class="btn btn--primary" (click)="openAddModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Agregar
+        </button>
+      </div>
+
+      @if (incomeSources().length === 0) {
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="1.5">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <p>No hay fuentes de ingreso</p>
+          <button class="btn btn--outline" (click)="openAddModal()">Agregar primera fuente</button>
+        </div>
+      } @else {
+        <div class="sources-list">
+          @for (source of incomeSources(); track source.id) {
+            <div class="source-card" [class.inactive]="!source.isActive">
+              <div class="source-info">
+                <div class="source-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                  </svg>
+                </div>
+                <div class="source-details">
+                  <span class="source-name">{{ source.name }}</span>
+                  <span class="source-frequency">{{ getFrequencyLabel(source.frequency) }}</span>
+                </div>
+              </div>
+              <div class="source-amount">
+                <span class="amount">{{ formatSol(source.amount) }}</span>
+                <button class="toggle-btn" (click)="toggleActive(source)" [title]="source.isActive ? 'Desactivar' : 'Activar'">
+                  @if (source.isActive) {
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                      <path d="M22 4L12 14.01l-3-3"/>
+                    </svg>
+                  } @else {
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M4.93 4.93l14.14 14.14"/>
+                    </svg>
+                  }
+                </button>
+                <button class="edit-btn" (click)="openEditModal(source)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Desglose Mensual -->
+    <div class="breakdown-section">
+      <h2>Desglose Mensual</h2>
+      <div class="breakdown-grid">
+        @for (source of monthlyIncome()?.sources ?? []; track source.sourceId) {
+          <div class="breakdown-item">
+            <span class="breakdown-label">{{ source.name }}</span>
+            <span class="breakdown-value">{{ formatSol(source.budgeted) }}</span>
+          </div>
+        }
+        <div class="breakdown-item breakdown-item--total">
+          <span class="breakdown-label">Total Mensual</span>
+          <span class="breakdown-value">{{ formatSol(monthlyIncome()?.totalBudgeted ?? totalMonthly) }}</span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal -->
+  @if (showModal()) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ editingSource() ? 'Editar' : 'Agregar' }} Fuente de Ingreso</h3>
+          <button class="close-btn" (click)="closeModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" [(ngModel)]="formName" placeholder="ej. Salario, Freelance">
+          </div>
+          <div class="form-group">
+            <label>Monto</label>
+            <input type="number" [(ngModel)]="formAmount" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Frecuencia</label>
+            <select [(ngModel)]="formFrequency">
+              <option value="monthly">Mensual</option>
+              <option value="biweekly">Quincenal</option>
+              <option value="weekly">Semanal</option>
+            </select>
+          </div>
+          @if (editingSource()) {
+            <div class="form-group form-group--checkbox">
+              <label>
+                <input type="checkbox" [(ngModel)]="formIsActive">
+                Activo
+              </label>
+            </div>
+          }
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn--outline" (click)="closeModal()">Cancelar</button>
+          <button class="btn btn--primary" (click)="saveSource()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

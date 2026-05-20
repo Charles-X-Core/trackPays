@@ -1,0 +1,130 @@
+// ============================================
+// DESIGN SYSTEM - Track Pays
+// Basado en: Brand Identity + Emil Kowalski Principles
+// ============================================
+
+// ------------------------------------------
+// COLORES - Brand Identity
+// ------------------------------------------
+:root {
+  // Primary Colors
+  --color-primary: #166B46;
+  --color-primary-light: #2FA46A;
+  --color-primary-dark: #0D1B16;
+  
+  // Neutral Colors
+  --color-bg: #0E1212;
+  --color-surface: #0D1B16;
+  --color-surface-elevated: #141618;
+  
+  // Text Colors
+  --color-text: #F5F7F5;
+  --color-text-secondary: #AAB5AE;
+  --color-text-muted: #71717a;
+  
+  // Accent
+  --color-accent: #2FA46A;
+  --color-gold: #D4AF37;
+  
+  // Semantic
+  --color-success: #2FA46A;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  
+  // Borders
+  --color-border: rgba(170, 181, 174, 0.15);
+  --color-border-hover: rgba(22, 107, 70, 0.4);
+}
+
+// ------------------------------------------
+// TIPOGRAFÍA - Brand Identity
+// ------------------------------------------
+:root {
+  --font-heading: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  --text-xs: 0.75rem;    // 12px
+  --text-sm: 0.875rem;   // 14px
+  --text-base: 1rem;      // 16px
+  --text-lg: 1.125rem;    // 18px
+  --text-xl: 1.25rem;     // 20px
+  --text-2xl: 1.5rem;     // 24px
+  --text-3xl: 1.875rem;   // 30px
+  
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+}
+
+// ------------------------------------------
+// EASING - Emil Kowalski Principles
+// ------------------------------------------
+:root {
+  // Strong ease-out for UI interactions (buttons, etc)
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  
+  // Strong ease-in-out for on-screen movement
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  
+  // iOS-like drawer curve
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  
+  // Default UI ease
+  --ease-default: ease-out;
+}
+
+// ------------------------------------------
+// DURACIONES - Emil Kowalski Principles
+// ------------------------------------------
+:root {
+  --duration-fast: 100ms;
+  --duration-normal: 160ms;
+  --duration-slow: 200ms;
+  --duration-page: 300ms;
+}
+
+// ------------------------------------------
+// RADII
+// ------------------------------------------
+:root {
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+}
+
+// ------------------------------------------
+// SHADOWS
+// ------------------------------------------
+:root {
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(22, 107, 70, 0.3);
+}
+
+// ------------------------------------------
+// SPACING
+// ------------------------------------------
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+}
+
+// ------------------------------------------
+// LAYOUT
+// ------------------------------------------
+:root {
+  --sidebar-width: 240px;
+  --topbar-height: 64px;
+  --bottom-nav-height: 72px;
+}

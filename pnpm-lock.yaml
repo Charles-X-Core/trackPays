@@ -50,6 +50,9 @@ importers:
       firebase-admin:
         specifier: ^13.10.0
         version: 13.10.0
+      lucide-angular:
+        specifier: 0.469.0
+        version: 0.469.0(@angular/common@21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))
       ng2-charts:
         specifier: ^10.0.0
         version: 10.0.0(@angular/cdk@21.2.11(@angular/common@21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(@angular/platform-browser@21.2.13(@angular/animations@21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2)))(@angular/common@21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2)))(rxjs@7.8.2))(@angular/common@21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(@angular/platform-browser@21.2.13(@angular/animations@21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2)))(@angular/common@21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2)))(chart.js@4.5.1)(rxjs@7.8.2)
@@ -3788,6 +3791,13 @@ packages:
   lsofi@2.0.0:
     resolution: {integrity: sha512-XTFlOBHeuXnUGuUQI0kBb4O4oQW7qCV7MRGQja1xNpxgrI/jptlly+/5126RiRold1zgyxY520qOZUZ31V0I2A==}
     engines: {node: '>=20.0.0'}
+
+  lucide-angular@0.469.0:
+    resolution: {integrity: sha512-jyAqrKLg8X46AhleiFqCqlxLixEiL+Ad5wPOuky2LJdsTyKWV+kZOquKYnqCHIlyDekT9Jc9YtS8sM1gQPX2nw==}
+    deprecated: Package deprecated. Please use @lucide/angular instead.
+    peerDependencies:
+      '@angular/common': 13.x - 19.x
+      '@angular/core': 13.x - 19.x
 
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
@@ -9447,6 +9457,12 @@ snapshots:
       lru-cache: 6.0.0
 
   lsofi@2.0.0: {}
+
+  lucide-angular@0.469.0(@angular/common@21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2)):
+    dependencies:
+      '@angular/common': 21.2.13(@angular/core@21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@angular/core': 21.2.13(@angular/compiler@21.2.13)(rxjs@7.8.2)
+      tslib: 2.8.1
 
   magic-string@0.30.17:
     dependencies:
