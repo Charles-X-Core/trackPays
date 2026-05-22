@@ -235,24 +235,24 @@ export interface MonthlyExpenseSummary {
 // ============================================
 
 export const PRIMORDIAL_CATEGORIES: Record<PrimordialCategory, { name: string; icon: string }> = {
-  housing: { name: 'Vivienda', icon: '🏠' },
-  utilities: { name: 'Servicios', icon: '💡' },
-  transport: { name: 'Transporte', icon: '🚌' },
-  health: { name: 'Salud', icon: '🏥' },
-  debt: { name: 'Deudas', icon: '🏦' },
-  groceries: { name: 'Supermercado', icon: '🛒' },
-  education: { name: 'Educación', icon: '📚' }
+  housing: { name: 'Vivienda', icon: 'house' },
+  utilities: { name: 'Servicios', icon: 'lightbulb' },
+  transport: { name: 'Transporte', icon: 'bus' },
+  health: { name: 'Salud', icon: 'hospital' },
+  debt: { name: 'Deudas', icon: 'landmark' },
+  groceries: { name: 'Supermercado', icon: 'shopping-cart' },
+  education: { name: 'Educación', icon: 'graduation-cap' }
 };
 
 export const NON_PRIMORDIAL_CATEGORIES: Record<NonPrimordialCategory, { name: string; icon: string }> = {
-  dining_out: { name: 'Comida fuera', icon: '🍔' },
-  entertainment: { name: 'Entretenimiento', icon: '🎬' },
-  streaming: { name: 'Streaming', icon: '📺' },
-  pets: { name: 'Mascotas', icon: '🐕' },
-  clothing: { name: 'Ropa', icon: '👕' },
-  travel: { name: 'Viajes', icon: '✈️' },
-  shopping: { name: 'Compras', icon: '🛍️' },
-  subscriptions: { name: 'Suscripciones', icon: '📱' }
+  dining_out: { name: 'Comida fuera', icon: 'utensils' },
+  entertainment: { name: 'Entretenimiento', icon: 'clapperboard' },
+  streaming: { name: 'Streaming', icon: 'tv' },
+  pets: { name: 'Mascotas', icon: 'dog' },
+  clothing: { name: 'Ropa', icon: 'shirt' },
+  travel: { name: 'Viajes', icon: 'plane' },
+  shopping: { name: 'Compras', icon: 'shopping-bag' },
+  subscriptions: { name: 'Suscripciones', icon: 'repeat' }
 };
 
 // Helper para obtener todas las categorías

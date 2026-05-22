@@ -141,16 +141,6 @@
       </div>
 
       <div class="form-field">
-        <label>Categoría</label>
-        <select [(ngModel)]="editCategoryId" class="form-input">
-          <option value="">Sin categoría</option>
-          @for (cat of categories(); track cat.id) {
-            <option [value]="cat.id">{{ cat.name }}</option>
-          }
-        </select>
-      </div>
-
-      <div class="form-field">
         <label>Fecha</label>
         <input type="date" [(ngModel)]="editDate" class="form-input" />
       </div>

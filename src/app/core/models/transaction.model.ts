@@ -12,9 +12,9 @@ export interface Transaction {
 }
 
 export interface TransactionPayload {
-  categoryId: string | null;
   amount: number;
   description: string;
   date: string;
   type: 'income' | 'expense';
+  categoryId?: string | null;
 }

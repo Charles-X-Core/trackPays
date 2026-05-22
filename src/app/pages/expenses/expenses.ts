@@ -3,12 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TransactionService } from '../../core/services/transaction';
-import { CategoryService } from '../../core/services/category';
 import { ExpenseService } from '../../core/services/expense';
 import { LayoutService } from '../../core/services/layout.service';
 import { Auth } from '../../core/services/auth';
+import { IconComponent } from '../../core/components/icon/icon.component';
 import { Transaction } from '../../core/models/transaction.model';
-import { Category } from '../../core/models/category.model';
 import { Expense } from '../../core/models/expense.model';
 
 interface DailyExpense {
@@ -21,13 +20,12 @@ interface DailyExpense {
 @Component({
   selector: 'app-expenses',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, IconComponent],
   templateUrl: './expenses.html',
   styleUrl: './expenses.scss'
 })
 export class ExpensesComponent implements OnInit {
   private transactionService = inject(TransactionService);
-  private categoryService = inject(CategoryService);
   private expenseService = inject(ExpenseService);
   private authService = inject(Auth);
   layoutService = inject(LayoutService);
@@ -35,7 +33,6 @@ export class ExpensesComponent implements OnInit {
   isLoading = signal(true);
   expenses = signal<Transaction[]>([]);
   dailyExpenses = signal<DailyExpense[]>([]);
-  categories = signal<Category[]>([]);
 
   // Expenses from backend (with payment status)
   allExpenses = signal<Expense[]>([]);
@@ -180,15 +177,14 @@ export class ExpensesComponent implements OnInit {
   async loadData() {
     this.isLoading.set(true);
     try {
-      // Load categories first
-      const cats = await this.categoryService.getAll();
-      this.categories.set(cats);
-
       // Load expenses from backend (with payment status)
       const activeExpenses = await this.expenseService.getActive();
       this.allExpenses.set(activeExpenses);
       this.primordialExpenses.set(activeExpenses.filter(e => e.isPrimordial));
       this.nonPrimordialExpenses.set(activeExpenses.filter(e => !e.isPrimordial));
+
+      // Calculate Primordial vs Non-Primordial totals
+      this.calculatePrimordialBreakdown();
 
       const currentMonthExpenses = await this.transactionService.getByMonth(
         this.now.getFullYear(), 
@@ -198,9 +194,6 @@ export class ExpensesComponent implements OnInit {
       const expensesOnly = currentMonthExpenses.filter(t => t.type === 'expense');
       this.expenses.set(expensesOnly);
       this.totalExpenses = Math.abs(expensesOnly.reduce((sum, t) => sum + t.amount, 0));
-
-      // Calculate Primordial vs Non-Primordial
-      this.calculatePrimordialBreakdown(expensesOnly);
 
       // Get last month for comparison
       const lastMonthDate = new Date(this.now.getFullYear(), this.now.getMonth() - 1, 1);
@@ -226,19 +219,15 @@ export class ExpensesComponent implements OnInit {
     }
   }
 
-  calculatePrimordialBreakdown(expenses: Transaction[]) {
+  calculatePrimordialBreakdown() {
     this.primordialTotal = 0;
     this.nonPrimordialTotal = 0;
 
-    expenses.forEach(expense => {
-      const amount = Math.abs(expense.amount);
-      const cat = this.categories().find(c => c.id === expense.categoryId);
-      const ruleType = cat?.ruleType || 'want';
-
-      if (ruleType === 'need') {
-        this.primordialTotal += amount;
+    this.allExpenses().forEach(expense => {
+      if (expense.isPrimordial) {
+        this.primordialTotal += expense.budgetedAmount;
       } else {
-        this.nonPrimordialTotal += amount;
+        this.nonPrimordialTotal += expense.budgetedAmount;
       }
     });
   }
@@ -273,9 +262,8 @@ export class ExpensesComponent implements OnInit {
     
     expenses.forEach(expense => {
       const catId = expense.categoryId || 'other';
-      const cat = this.categories().find(c => c.id === catId);
-      const ruleType = cat?.ruleType || 'want';
-      const isPrimordial = ruleType === 'need';
+      // Use expense category mapping to determine if primordial
+      const isPrimordial = ['housing', 'utilities', 'transport', 'health', 'debt', 'groceries', 'education'].includes(catId);
 
       if (!catTotals[catId]) {
         catTotals[catId] = { total: 0, isPrimordial };
@@ -371,18 +359,18 @@ formatSol(n: number): string {
 
   getCategoryIcon(category: string): string {
     const icons: Record<string, string> = {
-      housing: '🏠',
-      utilities: '⚡',
-      transport: '🚗',
-      health: '🏥',
-      groceries: '🛒',
-      streaming: '📺',
-      dining_out: '🍽️',
-      entertainment: '🎬',
-      education: '📚',
-      other: '📦'
+      housing: 'house',
+      utilities: 'lightbulb',
+      transport: 'bus',
+      health: 'hospital',
+      groceries: 'shopping-cart',
+      streaming: 'tv',
+      dining_out: 'utensils',
+      entertainment: 'clapperboard',
+      education: 'graduation-cap',
+      other: 'package'
     };
-    return icons[category] || '📦';
+    return icons[category] || 'package';
   }
 
   getCategoryLabel(category: string): string {

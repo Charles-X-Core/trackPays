@@ -100,13 +100,13 @@ export class SurplusNotificationService {
     const monthName = new Date(surplus.year, surplus.month - 1).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
 
     if (surplus.trend === 'up') {
-      title = '💰 Tu ahorro aumentó';
+      title = 'Tu ahorro aumentó';
       message = `Este ${monthName} terminaste con S/ ${surplus.surplus.toFixed(2)} de sobrante, un ${surplus.percentageChange.toFixed(1)}% más que el mes anterior. ¡Excelente trabajo!`;
     } else if (surplus.trend === 'down') {
-      title = '📉 Tu ahorro disminuyó';
+      title = 'Tu ahorro disminuyó';
       message = `Este ${monthName} terminaste con S/ ${surplus.surplus.toFixed(2)} de sobrante, un ${Math.abs(surplus.percentageChange).toFixed(1)}% menos que el mes anterior. Revisa tus gastos para mejorar.`;
     } else {
-      title = '⚖️ Tu ahorro se mantiene';
+      title = 'Tu ahorro se mantiene';
       message = `Este ${monthName} terminaste con S/ ${surplus.surplus.toFixed(2)} de sobrante, igual que el mes anterior. ¡Sigue así!`;
     }
 

@@ -119,57 +119,6 @@ export class GoalService {
   }
 
   // ============================================
-  // Métodos Legacy (compatibilidad)
-  // ============================================
-  
-  async updateContribution(monthlyContribution: number): Promise<SavingGoal> {
-    // Legacy method - just use addContribution with 0 and a note about monthly change
-    const goals = await this.getAll();
-    if (goals.length === 0) throw new Error('No hay metas');
-    
-    // Update the first active goal
-    const goal = goals[0];
-    return this.update(goal.id, { monthlyContribution });
-  }
-
-  async updateTarget(targetAmount: number): Promise<SavingGoal> {
-    const goals = await this.getAll();
-    if (goals.length === 0) throw new Error('No hay metas');
-    
-    const goal = goals[0];
-    return this.update(goal.id, { targetAmount });
-  }
-  
-  async get(): Promise<SavingGoal | null> {
-    const userId = this.authService.getUserId();
-    if (!userId) return null;
-
-    const data = await this.firebase.getGoal(userId);
-    return data as SavingGoal | null;
-  }
-
-  async seedGoal(): Promise<SavingGoal> {
-    const userId = this.authService.getUserId();
-    if (!userId) throw new Error('No autenticado');
-
-    const existing = await this.get();
-    if (existing) return existing;
-
-    const goal = {
-      name: 'Meta S/ 10,000',
-      targetAmount: 10000,
-      currentAmount: 0,
-      monthlyContribution: 240,
-      monthsToGoal: 42,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    await this.firebase.createOrUpdateGoal(userId, goal as any);
-    return goal as SavingGoal;
-  }
-
-  // ============================================
   // Helpers
   // ============================================
   
@@ -178,7 +127,7 @@ export class GoalService {
   }
 
   calcEstimatedDate(monthsToGoal: number | null): string {
-    if (!monthsToGoal) return 'Meta alcanzada 🎉';
+    if (!monthsToGoal) return 'Meta alcanzada';
     const date = new Date();
     date.setMonth(date.getMonth() + monthsToGoal);
     return date.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });

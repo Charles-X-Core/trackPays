@@ -73,6 +73,11 @@ export const routes: Routes = [
         path: 'settings',
         loadComponent: () =>
           import('./pages/settings/settings').then(m => m.SettingsComponent)
+      },
+      {
+        path: 'migration',
+        loadComponent: () =>
+          import('./pages/migration/migration').then(m => m.DataMigrationComponent)
       }
     ]
   },

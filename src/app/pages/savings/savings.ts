@@ -47,8 +47,9 @@ export class SavingsComponent implements OnInit {
     this.isLoading.set(true);
     try {
       // Get current goal
-      const goal = await this.goalService.get();
-      this.currentGoal.set(goal);
+      const goals = await this.goalService.getAll();
+      const activeGoal = goals.find(g => g.status === 'active') || goals[0] || null;
+      this.currentGoal.set(activeGoal);
 
       // Get monthly income for 20% target
       const income = await this.incomeService.getMonthlyIncome(

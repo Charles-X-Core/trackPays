@@ -40,11 +40,11 @@ export class GoalComponent implements OnInit {
   monthlyIncome = 0;
 
   readonly milestones: Milestone[] = [
-    { amount: 1000,  label: '🎯 S/ 1,000',  reached: false },
-    { amount: 2500,  label: '⭐ S/ 2,500',  reached: false },
-    { amount: 5000,  label: '🔥 S/ 5,000',  reached: false },
-    { amount: 7500,  label: '💎 S/ 7,500',  reached: false },
-    { amount: 10000, label: '🏆 S/ 10,000', reached: false },
+    { amount: 1000,  label: 'S/ 1,000',  reached: false },
+    { amount: 2500,  label: 'S/ 2,500',  reached: false },
+    { amount: 5000,  label: 'S/ 5,000',  reached: false },
+    { amount: 7500,  label: 'S/ 7,500',  reached: false },
+    { amount: 10000, label: 'S/ 10,000', reached: false },
   ];
 
   get progress(): number {
@@ -89,19 +89,20 @@ export class GoalComponent implements OnInit {
     this.isLoading.set(true);
     try {
       const now  = new Date();
-      const [goal, txs] = await Promise.all([
-        this.goalService.get(),
+      const [goals, txs] = await Promise.all([
+        this.goalService.getAll(),
         this.transactionService.getByMonth(now.getFullYear(), now.getMonth() + 1)
       ]);
 
-      this.goal.set(goal);
+      const activeGoal = goals.find(g => g.status === 'active') || goals[0] || null;
+      this.goal.set(activeGoal);
 
       const totals      = this.transactionService.calcTotals(txs);
       this.monthlyIncome = totals.income;
 
-      if (goal) {
-        this.newContribution = goal.monthlyContribution;
-        this.newTarget       = goal.targetAmount;
+      if (activeGoal) {
+        this.newContribution = activeGoal.monthlyContribution;
+        this.newTarget       = activeGoal.targetAmount;
       }
     } finally {
       this.isLoading.set(false);
@@ -114,11 +115,16 @@ export class GoalComponent implements OnInit {
       this.errorMsg.set('La contribución debe ser mayor a 0');
       return;
     }
+    const goal = this.goal();
+    if (!goal) {
+      this.errorMsg.set('No hay meta activa');
+      return;
+    }
     this.isSaving.set(true);
     this.errorMsg.set('');
     try {
-      const updated = await this.goalService.updateContribution(this.newContribution);
-      this.goal.set(updated);
+      await this.goalService.update(goal.id, { monthlyContribution: this.newContribution });
+      await this.loadData();
       this.showEditContribution.set(false);
       this.showSuccess('¡Contribución actualizada! Los meses se recalcularon.');
     } catch (e: any) {
@@ -134,11 +140,16 @@ export class GoalComponent implements OnInit {
       this.errorMsg.set('La meta debe ser mayor a 0');
       return;
     }
+    const goal = this.goal();
+    if (!goal) {
+      this.errorMsg.set('No hay meta activa');
+      return;
+    }
     this.isSaving.set(true);
     this.errorMsg.set('');
     try {
-      const updated = await this.goalService.updateTarget(this.newTarget);
-      this.goal.set(updated);
+      await this.goalService.update(goal.id, { targetAmount: this.newTarget });
+      await this.loadData();
       this.showEditTarget.set(false);
       this.showSuccess('¡Meta actualizada!');
     } catch (e: any) {
@@ -158,7 +169,7 @@ export class GoalComponent implements OnInit {
   }
 
   formatMonth(months: number): string {
-    if (months === 0) return '¡Meta alcanzada! 🎉';
+    if (months === 0) return '¡Meta alcanzada!';
     if (months === 1) return '1 mes';
     if (months < 12)  return `${months} meses`;
     const years = Math.floor(months / 12);

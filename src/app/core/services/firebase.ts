@@ -120,19 +120,46 @@ export class FirebaseService {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
-  // Get transactions from months structure
+  // Get transactions from months structure (with legacy fallback)
   async getTransactionsByMonth(userId: string, year: number, month: number) {
     const monthId = `${year}-${String(month).padStart(2, '0')}`;
+    
+    // Try new structure first
     const q = query(
       collection(this.firestore, `users/${userId}/months/${monthId}/transactions`),
       orderBy('date', 'desc')
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const newTxs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // If new structure has data, use it
+    if (newTxs.length > 0) {
+      return newTxs;
+    }
+    
+    // Fallback: check legacy flat structure and filter by month
+    try {
+      const legacyQ = query(
+        collection(this.firestore, `users/${userId}/transactions`),
+        orderBy('date', 'desc'),
+        limit(100)
+      );
+      const legacySnapshot = await getDocs(legacyQ);
+      const legacyTxs = legacySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((tx: any) => {
+          const txDate = new Date(tx.date || tx.createdAt);
+          return txDate.getFullYear() === year && txDate.getMonth() + 1 === month;
+        });
+      
+      return legacyTxs;
+    } catch {
+      return [];
+    }
   }
 
   // Create transaction in months structure
-  async createTransactionInMonth(userId: string, data: any): Promise<any> {
+  async createTransaction(userId: string, data: any): Promise<any> {
     const date = new Date(data.date);
     const monthId = this.getMonthId(date);
     
@@ -229,9 +256,9 @@ export class FirebaseService {
   // Get financial state for a month
   async getFinancialState(userId: string, year: number, month: number): Promise<any> {
     const monthId = `${year}-${String(month).padStart(2, '0')}`;
-    const docRef = doc(this.firestore, `users/${userId}/months/${monthId}/financialState`);
+    const docRef = doc(this.firestore, `users/${userId}/months/${monthId}`);
     const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? docSnap.data() : null;
+    return docSnap.exists() ? (docSnap.data() as any)?.['financialState'] : null;
   }
 
   // Update financial state (pre-calculated)
@@ -321,8 +348,8 @@ export class FirebaseService {
       lastUpdated: new Date().toISOString()
     };
     
-    const stateRef = doc(this.firestore, `users/${userId}/months/${monthId}/financialState`);
-    await setDoc(stateRef, financialState, { merge: true });
+    const stateRef = doc(this.firestore, `users/${userId}/months/${monthId}`);
+    await setDoc(stateRef, { financialState }, { merge: true });
     
     return financialState;
   }
@@ -341,44 +368,14 @@ export class FirebaseService {
   }
 
   // ============================================
-  // LEGACY TRANSACTIONS (for backward compatibility)
-  // ============================================
-  async getTransactions(userId: string, year?: number, month?: number) {
-    // If year/month provided, use new months structure
-    if (year && month) {
-      return this.getTransactionsByMonth(userId, year, month);
-    }
-    
-    // Otherwise use legacy flat structure
-    let q = collection(this.firestore, `users/${userId}/transactions`);
-    q = query(q, orderBy('date', 'desc'), limit(100)) as any;
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  }
-
-  async createTransaction(userId: string, data: any): Promise<any> {
-    // Use new months structure by default
-    return this.createTransactionInMonth(userId, data);
-  }
-
-  // ============================================
   // GOALS (Múltiples)
   // ============================================
   
-  // Get all goals (legacy - single goal)
-  async getGoal(userId: string) {
-    const docRef = doc(this.firestore, `users/${userId}/goals/data`);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
-  }
-
   // Get all goals (new - multiple)
   async getGoals(userId: string) {
     const q = query(
       collection(this.firestore, `users/${userId}/goals`),
-      where('status', '==', 'active'),
-      orderBy('priority'),
-      orderBy('targetAmount', 'desc')
+      where('status', '==', 'active')
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -387,8 +384,7 @@ export class FirebaseService {
   // Get all goals including completed/paused/cancelled
   async getAllGoals(userId: string) {
     const q = query(
-      collection(this.firestore, `users/${userId}/goals`),
-      orderBy('createdAt', 'desc')
+      collection(this.firestore, `users/${userId}/goals`)
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -458,37 +454,6 @@ export class FirebaseService {
       status: 'cancelled',
       updatedAt: new Date().toISOString()
     }, { merge: true });
-  }
-
-  // Legacy method
-  async createOrUpdateGoal(userId: string, data: any) {
-    const docRef = doc(this.firestore, `users/${userId}/goals/data`);
-    return setDoc(docRef, data, { merge: true });
-  }
-
-  // ============================================
-  // CATEGORIES
-  // ============================================
-  async getCategories(userId: string) {
-    const q = query(collection(this.firestore, `users/${userId}/categories`), orderBy('name'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  }
-
-  async createCategories(userId: string, categories: any[]) {
-    const batch = writeBatch(this.firestore);
-    categories.forEach(cat => {
-      const docRef = doc(collection(this.firestore, `users/${userId}/categories`));
-      batch.set(docRef, { ...cat, id: docRef.id });
-    });
-    await batch.commit();
-  }
-
-  async createCategory(userId: string, data: any) {
-    const docRef = doc(collection(this.firestore, `users/${userId}/categories`));
-    const dataWithId = { ...data, id: docRef.id, createdAt: new Date().toISOString() };
-    await setDoc(docRef, dataWithId);
-    return dataWithId;
   }
 
   // ============================================
@@ -1033,5 +998,89 @@ export class FirebaseService {
   async markNotificationAsRead(userId: string, notificationId: string) {
     const docRef = doc(this.firestore, `users/${userId}/notifications/${notificationId}`);
     return setDoc(docRef, { isRead: true }, { merge: true });
+  }
+
+  // ============================================
+  // MIGRATION HELPERS
+  // ============================================
+
+  async checkLegacyTransactions(userId: string): Promise<{ count: number }> {
+    try {
+      const q = query(
+        collection(this.firestore, `users/${userId}/transactions`),
+        limit(1)
+      );
+      const snapshot = await getDocs(q);
+      return { count: snapshot.size };
+    } catch {
+      return { count: 0 };
+    }
+  }
+
+  async getLegacyTransactions(userId: string): Promise<any[]> {
+    try {
+      const q = query(
+        collection(this.firestore, `users/${userId}/transactions`),
+        orderBy('date', 'desc'),
+        limit(500)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch {
+      return [];
+    }
+  }
+
+  async checkLegacyGoal(userId: string): Promise<{ exists: boolean }> {
+    try {
+      const docRef = doc(this.firestore, `users/${userId}/goals/data`);
+      const docSnap = await getDoc(docRef);
+      return { exists: docSnap.exists() };
+    } catch {
+      return { exists: false };
+    }
+  }
+
+  async getLegacyGoal(userId: string): Promise<any | null> {
+    try {
+      const docRef = doc(this.firestore, `users/${userId}/goals/data`);
+      const docSnap = await getDoc(docRef);
+      return docSnap.exists() ? docSnap.data() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async checkLegacyCategories(userId: string): Promise<{ count: number }> {
+    try {
+      const q = query(
+        collection(this.firestore, `users/${userId}/categories`),
+        limit(1)
+      );
+      const snapshot = await getDocs(q);
+      return { count: snapshot.size };
+    } catch {
+      return { count: 0 };
+    }
+  }
+
+  async markAsMigrated(userId: string, type: 'transactions' | 'goals') {
+    const docRef = doc(this.firestore, `users/${userId}/migration/status`);
+    await setDoc(docRef, {
+      [type]: true,
+      [`${type}MigratedAt`]: new Date().toISOString()
+    }, { merge: true });
+  }
+
+  async checkMigrationStatus(userId: string): Promise<boolean> {
+    try {
+      const docRef = doc(this.firestore, `users/${userId}/migration/status`);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return false;
+      const data = docSnap.data();
+      return data['transactions'] === true && data['goals'] === true;
+    } catch {
+      return false;
+    }
   }
 }

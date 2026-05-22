@@ -115,7 +115,7 @@
             <button class="filter-btn" [class.active]="filterCategory === ''" (click)="setCategoryFilter('')">Todas</button>
             @for (cat of getActiveCategories(); track cat) {
               <button class="filter-btn" [class.active]="filterCategory === cat" (click)="setCategoryFilter(cat)">
-                {{ getCategoryIcon(cat) }} {{ getCategoryLabel(cat) }}
+                <app-icon [name]="getCategoryIcon(cat)" [size]="16"></app-icon> {{ getCategoryLabel(cat) }}
               </button>
             }
           </div>
@@ -174,7 +174,7 @@
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>{{ editingExpense() ? 'Editar' : 'Agregar' }} Gasto</h3>
-        <button class="close-btn" (click)="closeModal()">✕</button>
+        <button class="close-btn" (click)="closeModal()"><app-icon name="x" [size]="18"></app-icon></button>
       </div>
       <div class="modal-body">
         <div class="form-group">

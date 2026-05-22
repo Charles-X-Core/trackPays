@@ -4,12 +4,11 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Auth } from '../../core/services/auth';
 import { TransactionService } from '../../core/services/transaction';
-import { CategoryService } from '../../core/services/category';
 import { GoalService } from '../../core/services/goal';
 import { IncomeService } from '../../core/services/income';
+import { FirebaseService } from '../../core/services/firebase';
 import { Transaction } from '../../core/models/transaction.model';
 import { SavingGoal } from '../../core/models/goal.model';
-import { Category } from '../../core/models/category.model';
 import { MonthlyIncome } from '../../core/models/income.model';
 
 @Component({
@@ -23,16 +22,15 @@ export class DashboardComponent implements OnInit {
 
   private authService        = inject(Auth);
   private transactionService = inject(TransactionService);
-  private categoryService    = inject(CategoryService);
   private goalService        = inject(GoalService);
   private incomeService      = inject(IncomeService);
+  private firebaseService    = inject(FirebaseService);
   
   isLoading      = signal(true);
   transactions   = signal<Transaction[]>([]);
   goal           = signal<SavingGoal | null>(null);
-  categories     = signal<Category[]>([]);
-  showQuickEntry = signal(false);
   monthlyIncome  = signal<MonthlyIncome | null>(null);
+  actualBalance  = signal<number>(0);
 
   now       = new Date();
   monthName = this.now.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
@@ -55,6 +53,10 @@ export class DashboardComponent implements OnInit {
   totals    = { income: 0, expenses: 0, balance: 0 };
   byRule    = { need: 0, want: 0, saving: 0 };
   byCategory: { name: string; icon: string; total: number }[] = [];
+  
+  // Ingreso configurado vs real
+  configuredIncome = 0;
+  actualIncome = 0;
 
   // Historial para gráficos (últimos 6 meses)
   monthlyHistory = signal<{ month: number; year: number; income: number; expenses: number; savings: number }[]>([]);
@@ -69,10 +71,12 @@ export class DashboardComponent implements OnInit {
   lastMonthSurplus = 0;
   surplusTrend: 'up' | 'down' | 'stable' = 'stable';
 
+  // Quick entry
+  showQuickEntry = signal(false);
+  
   // Quick entry form
   quickAmount      = '';
   quickDescription = '';
-  quickCategoryId  = '';
   quickDate        = new Date().toISOString().split('T')[0];
   quickError       = '';
   quickLoading     = false;
@@ -225,21 +229,49 @@ export class DashboardComponent implements OnInit {
   async loadData() {
     this.isLoading.set(true);
     try {
-      const [txs, goal, cats, income] = await Promise.all([
+      const userId = this.authService.getUserId();
+      if (!userId) return;
+
+      // Cargar fuentes de ingreso activas
+      let activeIncomes: any[] = [];
+      let totalConfiguredIncome = 0;
+      try {
+        activeIncomes = await this.incomeService.getActive();
+        totalConfiguredIncome = activeIncomes.reduce((sum, src) => sum + (src.amount || 0), 0);
+      } catch (e) {
+        console.error('Error loading income sources:', e);
+      }
+
+      // Cargar metas y transacciones
+      const [txs, goals] = await Promise.all([
         this.transactionService.getByMonth(this.now.getFullYear(), this.now.getMonth() + 1),
-        this.goalService.get(),
-        this.categoryService.getAll(),
-        this.incomeService.getMonthlyIncome(this.now.getFullYear(), this.now.getMonth() + 1)
+        this.goalService.getAll()
       ]);
 
       this.transactions.set(txs);
-      this.goal.set(goal);
-      this.categories.set(cats);
-      this.monthlyIncome.set(income as MonthlyIncome);
+      const activeGoal = goals.find(g => g.status === 'active') || goals[0] || null;
+      this.goal.set(activeGoal);
 
-      this.totals     = this.transactionService.calcTotals(txs);
-      this.byRule     = this.transactionService.calcByRuleType(txs);
-      this.byCategory = this.transactionService.calcByCategory(txs);
+      // Obtener estado financiero real (initialBalance + recibido - gastos)
+      let fs: any = null;
+      try {
+        fs = await this.firebaseService.getFinancialState(userId, this.now.getFullYear(), this.now.getMonth() + 1);
+      } catch (e) { /* ignore */ }
+
+      const txTotals = this.transactionService.calcTotals(txs);
+      const initialBalance = fs?.initialBalance ?? 0;
+      const receivedIncome = txTotals.income;
+      const actualBalanceVal = initialBalance + receivedIncome - Math.abs(txTotals.expenses);
+
+this.actualBalance.set(actualBalanceVal);
+      this.totals = {
+        income: totalConfiguredIncome,
+        expenses: txTotals.expenses,
+        balance: actualBalanceVal
+      };
+
+      this.configuredIncome = totalConfiguredIncome;
+      this.actualIncome = txTotals.income;
 
       // Calcular sobrante del mes
       this.monthlySurplus = this.totals.income - this.totals.expenses;
@@ -284,7 +316,6 @@ export class DashboardComponent implements OnInit {
       await this.transactionService.create({
         amount,
         description: this.quickDescription || (amount < 0 ? 'Gasto' : 'Ingreso'),
-        categoryId: this.quickCategoryId || null,
         date: this.quickDate,
         type: amount < 0 ? 'expense' : 'income'
       });
@@ -299,7 +330,7 @@ export class DashboardComponent implements OnInit {
 
   private resetQuick() {
     this.quickAmount = ''; this.quickDescription = '';
-    this.quickCategoryId = ''; this.quickError = '';
+    this.quickError = '';
     this.quickDate = new Date().toISOString().split('T')[0];
   }
 

@@ -3,9 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TransactionService } from '../../core/services/transaction';
-import { CategoryService } from '../../core/services/category';
 import { Transaction, TransactionPayload } from '../../core/models/transaction.model';
-import { Category } from '../../core/models/category.model';
 
 @Component({
   selector: 'app-transactions',
@@ -17,11 +15,9 @@ import { Category } from '../../core/models/category.model';
 export class TransactionsComponent implements OnInit {
 
   private transactionService = inject(TransactionService);
-  private categoryService    = inject(CategoryService);
 
   isLoading    = signal(true);
   transactions = signal<Transaction[]>([]);
-  categories   = signal<Category[]>([]);
 
   // Filtros
   filterType  = 'all';    // all | income | expense
@@ -37,7 +33,6 @@ export class TransactionsComponent implements OnInit {
   // Formulario edición
   editAmount      = '';
   editDescription = '';
-  editCategoryId  = '';
   editDate        = '';
 
   // Confirm delete
@@ -64,12 +59,8 @@ export class TransactionsComponent implements OnInit {
     this.isLoading.set(true);
     try {
       const [year, month] = this.filterMonth.split('-').map(Number);
-      const [txs, cats]   = await Promise.all([
-        this.transactionService.getByMonth(year, month),
-        this.categoryService.getAll()
-      ]);
+      const txs = await this.transactionService.getByMonth(year, month);
       this.transactions.set(txs);
-      this.categories.set(cats);
     } finally {
       this.isLoading.set(false);
     }
@@ -84,7 +75,6 @@ export class TransactionsComponent implements OnInit {
     this.editingTx.set(tx);
     this.editAmount      = String(tx.amount);
     this.editDescription = tx.description ?? '';
-    this.editCategoryId  = tx.categoryId ?? '';
     this.editDate        = tx.date;
     this.modalError.set('');
     this.showModal.set(true);
@@ -108,7 +98,6 @@ export class TransactionsComponent implements OnInit {
       const payload: Partial<TransactionPayload> = {
         amount,
         description: this.editDescription,
-        categoryId: this.editCategoryId || null,
         date: this.editDate,
         type: amount < 0 ? 'expense' : 'income'
       };

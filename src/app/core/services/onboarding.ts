@@ -28,13 +28,13 @@ export class OnboardingService {
   // Obtener opciones de tipo de empleo para la primera pregunta
   getEmploymentTypes() {
     return [
-      { value: 'employee', label: 'Empleado / Trabajador dependiente', icon: '💼' },
-      { value: 'freelancer', label: 'Freelancer / Independiente', icon: '💻' },
-      { value: 'business_owner', label: 'Dueño de negocio / Emprendedor', icon: '🏪' },
-      { value: 'retired', label: 'Jubilado / Pensionado', icon: '🏖️' },
-      { value: 'student', label: 'Estudiante', icon: '📚' },
-      { value: 'unemployed', label: 'Sin trabajo actualmente', icon: '🔍' },
-      { value: 'other', label: 'Otra situación', icon: '✨' }
+      { value: 'employee', label: 'Empleado / Trabajador dependiente' },
+      { value: 'freelancer', label: 'Freelancer / Independiente' },
+      { value: 'business_owner', label: 'Dueño de negocio / Emprendedor' },
+      { value: 'retired', label: 'Jubilado / Pensionado' },
+      { value: 'student', label: 'Estudiante' },
+      { value: 'unemployed', label: 'Sin trabajo actualmente' },
+      { value: 'other', label: 'Otra situación' }
     ];
   }
 

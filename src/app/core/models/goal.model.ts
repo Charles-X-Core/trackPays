@@ -120,18 +120,18 @@ export function calculateMonthlyNeeded(
 // ============================================
 
 export const GOAL_CATEGORIES: Record<GoalCategory, { name: string; icon: string }> = {
-  emergency: { name: 'Fondo de emergencia', icon: '🛡️' },
-  travel: { name: 'Viaje', icon: '✈️' },
-  vehicle: { name: 'Vehículo', icon: '🚗' },
-  house: { name: 'Casa / Depto', icon: '🏠' },
-  education: { name: 'Educación', icon: '🎓' },
-  technology: { name: 'Tecnología', icon: '💻' },
-  wedding: { name: 'Boda', icon: '💒' },
-  investment: { name: 'Inversión', icon: '📈' },
-  retirement: { name: 'Jubilación', icon: '🏖️' },
-  debt_payoff: { name: 'Pagar deudas', icon: '🏦' },
-  business: { name: 'Negocio', icon: '💼' },
-  other: { name: 'Otro', icon: '🎯' }
+  emergency: { name: 'Fondo de emergencia', icon: 'shield' },
+  travel: { name: 'Viaje', icon: 'plane' },
+  vehicle: { name: 'Vehículo', icon: 'car' },
+  house: { name: 'Casa / Depto', icon: 'house' },
+  education: { name: 'Educación', icon: 'graduation-cap' },
+  technology: { name: 'Tecnología', icon: 'laptop' },
+  wedding: { name: 'Boda', icon: 'heart' },
+  investment: { name: 'Inversión', icon: 'trending-up' },
+  retirement: { name: 'Jubilación', icon: 'sun' },
+  debt_payoff: { name: 'Pagar deudas', icon: 'credit-card' },
+  business: { name: 'Negocio', icon: 'briefcase' },
+  other: { name: 'Otro', icon: 'target' }
 };
 
 export const GOAL_PRIORITIES: Record<GoalPriority, { label: string; color: string }> = {

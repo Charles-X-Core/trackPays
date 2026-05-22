@@ -2,7 +2,6 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BudgetService } from '../../core/services/budget';
-import { CategoryService } from '../../core/services/category';
 
 interface BudgetCategory {
   id: string;
@@ -24,7 +23,6 @@ interface BudgetCategory {
 })
 export class BudgetsComponent implements OnInit {
   private budgetService = inject(BudgetService);
-  private categoryService = inject(CategoryService);
 
   categories = signal<BudgetCategory[]>([]);
   showModal = signal(false);

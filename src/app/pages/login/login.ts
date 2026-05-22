@@ -81,7 +81,7 @@ export class LoginComponent {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      this.errorMsg.set(this.parseError(error.message || error.code || 'Error desconocido'));
+      this.errorMsg.set(this.parseError(error));
     } finally {
       this.isLoading.set(false);
     }
@@ -93,17 +93,46 @@ export class LoginComponent {
     try {
       await this.authService.signInWithGoogle();
     } catch (error: any) {
-      this.errorMsg.set(this.parseError(error.message));
+      this.errorMsg.set(this.parseError(error));
       this.isLoading.set(false);
     }
   }
 
-  private parseError(msg: string): string {
-    if (msg.includes('Invalid login credentials')) return 'Correo o contraseña incorrectos.';
-    if (msg.includes('Email not confirmed'))       return 'Confirma tu correo antes de ingresar.';
-    if (msg.includes('User already registered'))   return 'Este correo ya está registrado.';
-    if (msg.includes('POPUP_CLOSED'))               return 'Cerraste la ventana de Google.';
-    if (msg.includes('Network error'))               return 'Error de conexión. Intenta de nuevo.';
-    return msg;
+  private parseError(error: any): string {
+    // Firebase Auth error codes
+    const code = error?.code || error?.message || '';
+    const msg = error?.message || '';
+    
+    // Login errors
+    if (code.includes('auth/user-not-found') || code.includes('auth/wrong-password')) 
+      return 'Correo o contraseña incorrectos.';
+    if (code.includes('auth/invalid-email')) 
+      return 'El correo electrónico no es válido.';
+    if (code.includes('auth/user-disabled')) 
+      return 'Esta cuenta ha sido deshabilitada.';
+    if (code.includes('auth/too-many-requests')) 
+      return 'Demasiados intentos fallidos. Intenta más tarde.';
+    if (code.includes('auth/invalid-credential')) 
+      return 'Correo o contraseña incorrectos.';
+    
+    // Register errors  
+    if (code.includes('auth/email-already-in-use')) 
+      return 'Este correo ya está registrado.';
+    if (code.includes('auth/weak-password')) 
+      return 'La contraseña es muy débil. Usa al menos 6 caracteres.';
+    
+    // Google errors
+    if (code.includes('auth/popup-closed-by-user') || msg.includes('POPUP_CLOSED')) 
+      return 'Cerraste la ventana de Google.';
+    if (code.includes('auth/cancelled-popup-request')) 
+      return 'Solo se permite un popup a la vez.';
+    
+    // Network
+    if (code.includes('auth/network-request-failed') || msg.includes('Network error')) 
+      return 'Error de conexión. Verifica tu internet.';
+    
+    // Default - return friendly message
+    console.error('Auth error:', error);
+    return 'Ocurrió un error. Intenta de nuevo.';
   }
 }

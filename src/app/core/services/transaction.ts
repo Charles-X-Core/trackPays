@@ -16,14 +16,6 @@ export class TransactionService {
     return data as Transaction[];
   }
 
-  async getAll(): Promise<Transaction[]> {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-
-    const data = await this.firebase.getTransactions(userId);
-    return data as Transaction[];
-  }
-
   async create(payload: TransactionPayload): Promise<Transaction> {
     const userId = this.authService.getUserId();
     if (!userId) throw new Error('No autenticado');
@@ -98,7 +90,7 @@ export class TransactionService {
       .filter(t => t.amount < 0 && t.category)
       .forEach(t => {
         const key = t.categoryId ?? 'sin-categoría';
-        const prev = map.get(key) ?? { name: (t.category as any)?.name ?? 'Sin categoría', icon: (t.category as any)?.icon ?? '📦', total: 0 };
+        const prev = map.get(key) ?? { name: (t.category as any)?.name ?? 'Sin categoría', icon: (t.category as any)?.icon ?? 'package', total: 0 };
         map.set(key, { ...prev, total: prev.total + Math.abs(t.amount) });
       });
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
