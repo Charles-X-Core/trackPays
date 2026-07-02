@@ -1,0 +1,110 @@
+<div class="about">
+  <!-- Hero -->
+  <section class="about__hero">
+    <img src="TRACKY/Tracky.png" alt="Tracky" class="about__mascot" />
+    <h1>Track Pays</h1>
+    <p class="about__tagline">Toma el control. Construye tu libertad.</p>
+  </section>
+
+  <!-- Descripción -->
+  <section class="about__section">
+    <h2>¿Qué es Track Pays?</h2>
+    <p>
+      Track Pays es tu sistema de gestión financiera personal. Diseñado para ayudarte a
+      entender, decidir y avanzar hacia tus metas financieras. Controla tus ingresos,
+      gastos, presupuestos y ahorros en un solo lugar.
+    </p>
+  </section>
+
+  <!-- Features -->
+  <section class="about__section">
+    <h2>Características</h2>
+    <div class="about__features">
+      @for (feature of features; track feature.title) {
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              @switch (feature.icon) {
+                @case ('wallet') {
+                  <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                  <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                  <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+                }
+                @case ('shopping-cart') {
+                  <circle cx="8" cy="21" r="1"/>
+                  <circle cx="19" cy="21" r="1"/>
+                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                }
+                @case ('bar-chart-2') {
+                  <path d="M3 3v18h18"/>
+                  <path d="m19 9-5 5-4-4-3 3"/>
+                }
+                @case ('file-text') {
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                }
+                @case ('target') {
+                  <circle cx="12" cy="12" r="10"/>
+                  <circle cx="12" cy="12" r="6"/>
+                  <circle cx="12" cy="12" r="2"/>
+                }
+                @case ('bell') {
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                }
+              }
+            </svg>
+          </div>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.desc }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="about__section">
+    <h2>Tecnologías</h2>
+    <div class="about__tech">
+      @for (tech of techStack; track tech.name) {
+        <div class="tech-badge" [style.--tech-color]="tech.color">
+          <span class="tech-badge__name">{{ tech.name }}</span>
+          @if (tech.version) {
+            <span class="tech-badge__version">{{ tech.version }}</span>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Links -->
+  <section class="about__section">
+    <h2>Enlaces</h2>
+    <div class="about__links">
+      <a href="https://github.com/Charles-X-Core/trackPays" target="_blank" rel="noopener" class="link-card">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        <span>GitHub</span>
+      </a>
+      <a href="https://track-pays.vercel.app" target="_blank" rel="noopener" class="link-card">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        <span>Demo en Vivo</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="about__footer">
+    <img src="TRACKY/Login/1.png" alt="Tracky" class="about__footer-mascot" />
+    <p>Desarrollado con 💚 por <a href="https://github.com/Charles-X-Core" target="_blank" rel="noopener">Charles-X-Core</a></p>
+    <p class="about__version">v2.0.0</p>
+  </footer>
+</div>
