@@ -52,3 +52,5 @@ firebase-service-account.json
 !angular.json
 .env.local
 .env.*.local
+
+docs/docs.rar
