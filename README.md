@@ -15,11 +15,11 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel)
 
+<img src="public/TRACKY/Tracky.png" alt="Tracky" width="200">
+
 </div>
 
 ---
-
-<img src="public/TRACKY/Tracky.png" alt="Tracky Mascot" width="120">
 
 ## ✨ Características
 
@@ -211,8 +211,10 @@ Este es un proyecto personal de desarrollo. Todos los derechos reservados.
 
 <div align="center">
 
-<img src="public/TRACKY/Login/1.png" alt="Tracky" width="100">
+<img src="public/TRACKY/Login/1.png" alt="Tracky" width="80">
 
 **Desarrollado con 💚 por [Charles-X-Core](https://github.com/Charles-X-Core)**
+
+<img src="public/TRACKY/Login/2.png" alt="Tracky Happy" width="80">
 
 </div>
