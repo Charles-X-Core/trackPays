@@ -119,7 +119,11 @@ import { LayoutService } from '../services/layout.service';
           <div class="topbar__user">
             <span class="topbar__greeting">Hola, {{ userName }}</span>
             <div class="topbar__avatar">
-              {{ userInitials }}
+              @if (userPhoto) {
+                <img [src]="userPhoto" [alt]="userName" class="topbar__avatar-img">
+              } @else {
+                {{ userInitials }}
+              }
             </div>
           </div>
         </header>
@@ -198,6 +202,10 @@ export class LayoutComponent {
   get userInitials(): string {
     const name = this.userName;
     return name.charAt(0).toUpperCase();
+  }
+
+  get userPhoto(): string | null {
+    return this.auth.currentUser()?.photoURL ?? null;
   }
   
   async logout() {
