@@ -1,6 +1,8 @@
 <div align="center">
 
-# 💰 Track Pays
+<img src="public/TRACKY/Login/logo.png" alt="Track Pays Logo" width="80">
+
+# Track Pays
 
 ### Tu sistema de gestión financiera personal
 
@@ -16,6 +18,8 @@
 </div>
 
 ---
+
+<img src="public/TRACKY/Tracky.png" alt="Tracky Mascot" width="120">
 
 ## ✨ Características
 
@@ -71,7 +75,7 @@ src/app/
 │   │   ├── goal.model.ts        # Metas de ahorro
 │   │   └── transaction.model.ts # Transacciones
 │   ├── services/          # Servicios de negocio
-│   │   ├── firebase.ts    # Capa de acceso a Firestore (God Object)
+│   │   ├── firebase.ts    # Capa de acceso a Firestore
 │   │   ├── auth.ts        # Autenticación Firebase
 │   │   ├── income.ts      # Lógica de ingresos
 │   │   ├── expense.ts     # Lógica de gastos
@@ -206,6 +210,8 @@ Este es un proyecto personal de desarrollo. Todos los derechos reservados.
 ---
 
 <div align="center">
+
+<img src="public/TRACKY/Login/1.png" alt="Tracky" width="100">
 
 **Desarrollado con 💚 por [Charles-X-Core](https://github.com/Charles-X-Core)**
 
