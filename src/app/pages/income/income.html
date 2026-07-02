@@ -23,7 +23,7 @@
         <app-icon name="check" [size]="14"></app-icon>
         <div class="stat-col">
           <span class="stat-label">Recibido</span>
-          <span class="stat-value">{{ formatSol(monthlyIncome()?.totalReceived || 0) }}</span>
+          <span class="stat-value">{{ formatSol(monthlyReceived()) }}</span>
         </div>
       </div>
       <div class="stat warn">
@@ -92,9 +92,6 @@
                   <button class="btn-icon" (click)="openEditWarning(source)" title="Editar">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                   </button>
-                  <button class="btn-icon success" (click)="openReopenWarning(source)" title="Reactivar">
-                    <app-icon name="rotate-ccw" [size]="14"></app-icon>
-                  </button>
                 </div>
               </div>
             }
@@ -102,7 +99,6 @@
         }
       </div>
     } @else {
-      <!-- Tabs normales para el resto de categorías -->
       <div class="tab-bar">
         <button class="tab" [class.active]="activeTab() === 'sources'" (click)="activeTab.set('sources')">
           <app-icon name="calendar" [size]="14"></app-icon>
@@ -155,14 +151,18 @@
                   </div>
                   <div class="row-actions">
                     @if (source.paymentStatus.status === 'upcoming' || source.paymentStatus.status === 'overdue') {
-                      <button class="btn-icon success" (click)="markReceived(source)" title="Marcar recibido">
-                        <app-icon name="check" [size]="14"></app-icon>
+                      <button class="btn-icon success" (click)="markReceived(source)" [disabled]="processing()" title="Marcar recibido">
+                        @if (confirmingId() === source.id) {
+                          <span class="btn-spinner"></span>
+                        } @else {
+                          <app-icon name="check" [size]="14"></app-icon>
+                        }
                       </button>
                     }
-                    <button class="btn-icon" (click)="openEdit(source)" title="Editar">
+                    <button class="btn-icon" (click)="openEdit(source)" [disabled]="processing()" title="Editar">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                     </button>
-                    <button class="btn-icon danger" (click)="openDeleteAlert(source)" title="Eliminar del activo">
+                    <button class="btn-icon danger" (click)="openDeleteAlert(source)" [disabled]="processing()" title="Eliminar del activo">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
                   </div>
@@ -189,56 +189,47 @@
         }
       }
 
-      <!-- HISTORIAL -->
+      <!-- HISTORIAL DE MOVIMIENTOS -->
       @if (activeTab() === 'history') {
         <div class="list-section">
           <div class="list-header">
-            <h3>Historial de Ingresos</h3>
-            <span class="list-count">{{ historySources().length }} registros</span>
+            <h3>Historial de Movimientos</h3>
+            <span class="list-count">{{ filteredHistory().length }} registros</span>
           </div>
 
-          @if (historySources().length === 0) {
+          @if (filteredHistory().length === 0) {
             <div class="empty-state">
-              <p>No hay ingresos en el historial</p>
-              <button class="btn-add" (click)="openAddModalForCurrentCategory()">Registrar ingreso puntual</button>
+              <p>No hay movimientos registrados</p>
             </div>
           } @else {
             <div class="income-list history-list">
-              @for (source of historySources(); track source.id) {
-                <div class="income-row" [class.received]="source.paymentStatus.status === 'received'">
-                  <div class="row-icon">
-                    <app-icon [name]="getTypeIcon(source.type)" [size]="18"></app-icon>
+              @for (entry of filteredHistory(); track entry.id) {
+                <div class="history-entry" [style.border-left-color]="getHistoryColor(entry.type)">
+                  <div class="history-icon" [style.color]="getHistoryColor(entry.type)">
+                    <app-icon [name]="getHistoryIcon(entry.type)" [size]="16"></app-icon>
                   </div>
-                  <div class="row-main">
-                    <span class="row-name">{{ source.name }}</span>
-                    <span class="row-meta">
-                      {{ getTypeLabel(source.type) }} · {{ formatSol(source.amount) }}
-                      @if (source.recurrence.frequency === 'variable') {
-                        · {{ source.recurrence.startDate | date:'d MMM yyyy' }}
-                      } @else if (source.lastReceivedDate) {
-                        · Recibido {{ source.lastReceivedDate | date:'d MMM yyyy' }}
+                  <div class="history-info">
+                    <div class="history-top">
+                      <span class="history-name">{{ entry.sourceName }}</span>
+                      <span class="history-type" [style.color]="getHistoryColor(entry.type)">
+                        {{ getHistoryLabel(entry.type) }}
+                      </span>
+                      @if (entry.amount > 0) {
+                        <span class="history-amount">{{ formatSol(entry.amount) }}</span>
                       }
-                    </span>
+                    </div>
+                    <div class="history-bottom">
+                      <span class="history-date">{{ entry.date | date:'d MMM yyyy' }}, {{ entry.time }}</span>
+                      <input type="text" class="history-desc-input" [ngModel]="entry.description"
+                             (ngModelChange)="updateDescription(entry, $event)"
+                             placeholder="Agregar nota..." />
+                    </div>
                   </div>
-                <div class="row-status">
-                  @if (source.lastReceivedDate) {
-                    <span class="badge" [style.color]="getPaymentStatusColor('received')">Recibido</span>
-                  } @else {
-                    <span class="badge" [style.color]="getPaymentStatusColor(source.paymentStatus.status)">
-                      {{ getPaymentStatusLabel(source.paymentStatus.status) }}
-                    </span>
-                  }
-                </div>
-                  <div class="row-actions">
-                    <button class="btn-icon" (click)="openEditWarning(source)" title="Editar">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  @if (entry.type === 'deletion' && !isSourceActive(entry.sourceId)) {
+                    <button class="btn-icon success" (click)="openReopenWarning(entry)" [disabled]="processing()" title="Reactivar">
+                      <app-icon name="rotate-ccw" [size]="14"></app-icon>
                     </button>
-                    @if (!source.isActive) {
-                      <button class="btn-icon success" (click)="openReopenWarning(source)" title="Reactivar">
-                        <app-icon name="rotate-ccw" [size]="14"></app-icon>
-                      </button>
-                    }
-                  </div>
+                  }
                 </div>
               }
             </div>
@@ -285,8 +276,14 @@
         por <strong>{{ formatSol(confirmAlertSource()?.amount || 0) }}</strong>?
       </p>
       <div class="confirm-actions">
-        <button class="btn-secondary" (click)="closeConfirmAlert()">Cancelar</button>
-        <button class="btn-primary" (click)="confirmMarkReceived()">Sí, confirmo</button>
+        <button class="btn-secondary" (click)="closeConfirmAlert()" [disabled]="processing()">Cancelar</button>
+        <button class="btn-primary" (click)="confirmMarkReceived()" [disabled]="processing()">
+          @if (processing()) {
+            <span class="btn-spinner white"></span> Procesando...
+          } @else {
+            <app-icon name="check" [size]="16"></app-icon> Sí, confirmo
+          }
+        </button>
       </div>
     </div>
   </div>
@@ -307,8 +304,14 @@
         <strong style="color:#ef4444">No se puede deshacer.</strong>
       </p>
       <div class="confirm-actions">
-        <button class="btn-secondary" (click)="closeDeleteAlert()">Cancelar</button>
-        <button class="btn-primary" style="background:#ef4444" (click)="confirmDelete()">Sí, eliminar</button>
+        <button class="btn-secondary" (click)="closeDeleteAlert()" [disabled]="processing()">Cancelar</button>
+        <button class="btn-primary" style="background:#ef4444" (click)="confirmDelete()" [disabled]="processing()">
+          @if (processing()) {
+            <span class="btn-spinner white"></span> Eliminando...
+          } @else {
+            <app-icon name="trash-2" [size]="16"></app-icon> Sí, eliminar
+          }
+        </button>
       </div>
     </div>
   </div>
@@ -344,15 +347,15 @@
       </div>
       <h4 class="confirm-title">Reactivar fuente de ingreso</h4>
       <p class="confirm-message">
-        <strong>{{ reopenWarningSource()?.name }}</strong> volver&aacute; a tus fuentes activas.
+        <strong>{{ reopenWarningEntry()?.sourceName }}</strong> volver&aacute; a tus fuentes activas.
         <br><br>
-        Se recalcular&aacute; su pr&oacute;xima fecha de pago a partir de hoy.
+        Se recalcular&aacute; su pr&oacute;xima fecha de pago seg&uacute;n su patr&oacute;n original.
         <br>
-        No se volver&aacute; a generar una transacci&oacute;n de ingreso.
+        Se agregar&aacute; una entrada amarilla en el historial de movimientos.
       </p>
       <div class="confirm-actions">
-        <button class="btn-secondary" (click)="closeReopenWarning()">Cancelar</button>
-        <button class="btn-primary" style="background:var(--color-warning);color:#fff" (click)="proceedReopen()">Reactivar</button>
+        <button class="btn-secondary" (click)="closeReopenWarning()" [disabled]="processing()">Cancelar</button>
+        <button class="btn-primary" style="background:var(--color-warning);color:#fff" (click)="proceedReopen()" [disabled]="processing()">{{ processing() ? 'Reactivando...' : 'Reactivar' }}</button>
       </div>
     </div>
   </div>
@@ -370,39 +373,46 @@
       </div>
 
       <div class="modal-body">
-        <div class="form-group">
-          <label>Categoría</label>
-          <div class="category-selector">
-            @for (cat of categoryList; track cat) {
-              <button class="cat-btn" [class.active]="formCategory() === cat" (click)="formCategory.set(cat); onCategoryChange()">
-                <app-icon [name]="categories[cat].icon" [size]="18"></app-icon>
-                <span>{{ categories[cat].label }}</span>
-              </button>
-            }
+        @if (!editingQuick() && editingSource()?.category !== 'transfer' && !editingSource()?.lastReceivedDate) {
+          <div class="form-group">
+            <label>Categoría</label>
+            <div class="category-selector">
+              @for (cat of categoryList; track cat) {
+                <button class="cat-btn" [class.active]="formCategory() === cat" (click)="formCategory.set(cat); onCategoryChange()">
+                  <app-icon [name]="categories[cat].icon" [size]="18"></app-icon>
+                  <span>{{ categories[cat].label }}</span>
+                </button>
+              }
+            </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label>Tipo de Ingreso</label>
-          <select [ngModel]="formType()" (ngModelChange)="formType.set($event); onTypeChange()" class="form-input">
-            @for (type of availableTypes(); track type.value) {
-              <option [value]="type.value">{{ type.label }}</option>
-            }
-          </select>
-        </div>
+          <div class="form-group">
+            <label>Tipo de Ingreso</label>
+            <select [ngModel]="formType()" (ngModelChange)="formType.set($event); onTypeChange()" class="form-input">
+              @for (type of availableTypes(); track type.value) {
+                <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select>
+          </div>
+        }
 
         <div class="form-row">
           <div class="form-group">
             <label>Nombre</label>
             <input type="text" [ngModel]="formName()" (ngModelChange)="formName.set($event)" placeholder="ej. Sueldo Empresa ABC" class="form-input" />
           </div>
-          <div class="form-group">
-            <label>Monto (S/)</label>
-            <input type="number" [ngModel]="formAmount()" (ngModelChange)="formAmount.set($event ? +$event : null)" placeholder="0.00" class="form-input" />
-          </div>
+          @if (!editingQuick()) {
+            <div class="form-group">
+              <label>Monto (S/)</label>
+              <input type="number" inputmode="decimal" pattern="[0-9]*" [ngModel]="formAmount()" (ngModelChange)="onAmountInput($event)" min="0" step="0.01" placeholder="0.00" class="form-input" [class.input-error]="amountError()" />
+              @if (amountError()) {
+                <span class="field-error">{{ amountError() }}</span>
+              }
+            </div>
+          }
         </div>
 
-        @if (isQuick()) {
+        @if (isQuick() && !editingQuick()) {
           <div class="form-group">
             <label>Fecha del ingreso</label>
             <input type="date" [ngModel]="formQuickDate()" (ngModelChange)="formQuickDate.set($event)" class="form-input" />
@@ -548,5 +558,56 @@
         </button>
       </div>
     </div>
+  </div>
+}
+
+<!-- Catch-up Alert Modal -->
+@if (showCatchUpAlert()) {
+  <div class="confirm-overlay" (click)="closeCatchUpAlert()">
+    <div class="confirm-dialog" (click)="$event.stopPropagation()">
+      <div class="confirm-icon" style="background:rgba(245,158,11,0.12);color:var(--color-warning)">
+        <app-icon name="alert-triangle" [size]="32"></app-icon>
+      </div>
+      <h4 class="confirm-title">Pagos no confirmados</h4>
+      <p class="confirm-message">
+        <strong>{{ catchUpSource()?.name }}</strong> tiene
+        <strong>{{ catchUpMonths().length }}</strong> pago(s) no confirmado(s):
+      </p>
+      <div class="missed-list">
+        @for (month of catchUpMonths(); track month) {
+          <span class="missed-badge">{{ month }}</span>
+        }
+      </div>
+      <p class="confirm-submessage" style="font-size:13px;color:var(--text-secondary);margin:12px 0 0">
+        ¿Confirmar que recibiste este pago?
+      </p>
+      <div class="confirm-actions">
+        <button class="btn-secondary" (click)="skipCatchUp()" [disabled]="processing()">Omitir</button>
+        <button class="btn-primary" (click)="confirmCatchUp()" [disabled]="processing()">
+          @if (processing()) {
+            <span class="btn-spinner white"></span> Procesando...
+          } @else {
+            <app-icon name="check" [size]="16"></app-icon> Sí, confirmo
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Success/Error Toast -->
+@if (showToast()) {
+  <div class="toast" [class.toast-success]="toastType() === 'success'" [class.toast-error]="toastType() === 'error'" [class.toast-info]="toastType() === 'info'" (click)="closeToast()">
+    @if (toastType() === 'success') {
+      <app-icon name="check-circle" [size]="18"></app-icon>
+    } @else if (toastType() === 'error') {
+      <app-icon name="alert-circle" [size]="18"></app-icon>
+    } @else {
+      <app-icon name="info" [size]="18"></app-icon>
+    }
+    <span class="toast-message">{{ toastMessage() }}</span>
+    <button class="toast-close" (click)="closeToast(); $event.stopPropagation()">
+      <app-icon name="x" [size]="14"></app-icon>
+    </button>
   </div>
 }

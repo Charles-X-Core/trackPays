@@ -59,4 +59,33 @@ export const LUCIDE_ICONS: Record<string, string> = {
   "wallet": "<path d=\"M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1\" /> <path d=\"M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4\" />",
   "trash-2": "<path d=\"M3 6h18\" /> <path d=\"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6\" /> <path d=\"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2\" />",
   "alert-triangle": "<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z\" /> <path d=\"M12 9v4\" /> <path d=\"M12 17h.01\" />",
+  "check-circle": "<path d=\"M22 11.08V12a10 10 0 1 1-5.93-9.14\" /> <path d=\"m9 11 3 3L22 4\" />",
+  "x-circle": "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"m15 9-6 6\" /> <path d=\"m9 9 6 6\" />",
+  "droplet": "<path d=\"M12 2C7 9 5 12 5 15a7 7 0 0 0 14 0c0-3-2-6-7-13Z\" />",
+  "leaf": "<path d=\"M12 2C5 6 4 13 12 20C20 13 19 6 12 2Z\" /> <path d=\"M12 2v18\" />",
+  "phone": "<rect x=\"6\" y=\"2\" width=\"12\" height=\"20\" rx=\"2\" /> <line x1=\"12\" x2=\"12.01\" y1=\"18\" y2=\"18\" />",
+  "beef": "<path d=\"M4 12c0-3 2-5 4-5h8c2 0 4 2 4 5s-2 5-4 5H8c-2 0-4-2-4-5Z\" /> <path d=\"M8 10l2-1M10 13l2-1M13 10l2-1\" stroke-linecap=\"round\" />",
+  "bone": "<circle cx=\"7\" cy=\"12\" r=\"2.5\" /> <circle cx=\"17\" cy=\"12\" r=\"2.5\" /> <rect x=\"7\" y=\"9.5\" width=\"10\" height=\"5\" />",
+  "beer": "<path d=\"M6 4h10v12c0 3-2 5-5 5-3 0-5-2-5-5V4Z\" /> <path d=\"M16 8h1c2 0 3 1 3 3s-1 3-3 3h-1\" /> <path d=\"M6 7h10\" />",
+};
+
+export const BRAND_ICONS: Record<string, string> = {
+  'brand-netflix':
+    '<path d="M3 2v20h4V8l10 14V2h-4v14L7 2H3Z" fill="currentColor" stroke="none"/>',
+  'brand-spotify':
+    '<rect x="6" y="14" width="4" height="8" rx="1" fill="currentColor" stroke="none"/>' +
+    '<rect x="11" y="9" width="4" height="13" rx="1" fill="currentColor" stroke="none"/>' +
+    '<rect x="16" y="5" width="4" height="17" rx="1" fill="currentColor" stroke="none"/>',
+  'brand-amazon':
+    '<path d="M5 13c0-3.9 3.1-7 7-7s7 3.1 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+    '<path d="M19 13l-3-3M19 13l-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  'brand-disney':
+    '<path d="M5 8v8h6a4 4 0 0 0 0-8H5z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<path d="M15 12h5M17.5 9.5v5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+  'brand-hbo':
+    '<rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>' +
+    '<polygon points="10,8 17,12 10,16" fill="currentColor" stroke="none"/>',
+  'brand-crunchyroll':
+    '<path d="M3 12c0 0 3.5-8 9-8s9 8 9 8-3.5 8-9 8-9-8-9-8z" fill="none" stroke="currentColor" stroke-width="2"/>' +
+    '<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>',
 };

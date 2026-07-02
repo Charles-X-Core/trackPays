@@ -74,10 +74,12 @@ export interface IncomeSource {
 
   // Estado actual
   paymentStatus: {
-    status: 'pending' | 'received' | 'overdue' | 'upcoming' | 'scheduled' | 'registered';
+    status: 'pending' | 'received' | 'overdue' | 'upcoming' | 'scheduled';
     nextDate: string | null;
     daysUntil: number | null;
     isLate: boolean;
+    missedCount: number;
+    missedMonths: string[];
   };
 
   // Solo para ingresos recurrentes (no 'other' rápido)
@@ -141,7 +143,7 @@ export interface MonthlyIncomeSource {
   received: number;
   expectedDate: string | null;
   receivedDate?: string | null;
-  status: 'pending' | 'received' | 'overdue' | 'upcoming' | 'scheduled' | 'registered';
+  status: 'pending' | 'received' | 'overdue' | 'upcoming' | 'scheduled';
   daysUntilPayment: number | null;
 }
 
@@ -361,39 +363,82 @@ export function calculatePaymentStatus(
 ): IncomeSource['paymentStatus'] {
   // Ingreso puntual/variable: no tiene próximas fechas
   if (rule.frequency === 'variable') {
-    return { status: 'registered', nextDate: null, daysUntil: null, isLate: false };
+    return { status: 'received', nextDate: null, daysUntil: null, isLate: false, missedCount: 0, missedMonths: [] };
   }
 
   if (nextDates.length === 0) {
-    return { status: 'pending', nextDate: null, daysUntil: null, isLate: false };
+    return { status: 'pending', nextDate: null, daysUntil: null, isLate: false, missedCount: 0, missedMonths: [] };
   }
 
-  const nextDate = new Date(nextDates[0]);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  nextDate.setHours(0, 0, 0, 0);
 
-  const diffMs = nextDate.getTime() - today.getTime();
-  const daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  // Buscar la primera fecha futura en el array
+  let futureIndex = -1;
+  for (let i = 0; i < nextDates.length; i++) {
+    const d = new Date(nextDates[i]);
+    d.setHours(0, 0, 0, 0);
+    if (d >= today) { futureIndex = i; break; }
+  }
 
-  // Si ya recibió esta ocurrencia
-  if (lastReceivedDate) {
-    const last = new Date(lastReceivedDate);
-    last.setHours(0, 0, 0, 0);
-    if (last >= nextDate) {
-      return { status: 'received', nextDate: nextDates[1] || null, daysUntil: null, isLate: false };
+  let missedCount = 0;
+  let missedMonths: string[] = [];
+  let chosenDateStr: string | null = null;
+
+  if (futureIndex >= 0) {
+    chosenDateStr = nextDates[futureIndex];
+    missedCount = futureIndex;
+    for (let i = 0; i < futureIndex; i++) {
+      const d = new Date(nextDates[i] + 'T12:00:00');
+      missedMonths.push(d.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }));
+    }
+  } else {
+    // Todos los nextDates son pasados — regenerar desde recurrence
+    const newDates = generateOccurrences(rule, 6);
+    if (newDates.length > 0) {
+      chosenDateStr = newDates[0];
+      missedCount = nextDates.length;
+      for (const dateStr of nextDates) {
+        const d = new Date(dateStr + 'T12:00:00');
+        missedMonths.push(d.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }));
+      }
     }
   }
 
+  if (!chosenDateStr) {
+    return { status: 'pending', nextDate: null, daysUntil: null, isLate: false, missedCount: 0, missedMonths: [] };
+  }
+
+  const chosenDate = new Date(chosenDateStr);
+  chosenDate.setHours(0, 0, 0, 0);
+
+  const diffMs = chosenDate.getTime() - today.getTime();
+  const daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  // Si ya recibió esta ocurrencia
+  if (lastReceivedDate && missedCount === 0) {
+    const last = new Date(lastReceivedDate);
+    last.setHours(0, 0, 0, 0);
+    if (last >= chosenDate) {
+      return { status: 'received', nextDate: chosenDateStr, daysUntil: null, isLate: false, missedCount: 0, missedMonths: [] };
+    }
+  }
+
+  // Si hay pagos perdidos pero ya estamos en fecha futura, status es upcoming/scheduled
+  if (missedCount > 0) {
+    if (daysUntil <= alertBeforeDays && daysUntil >= 0) {
+      return { status: 'upcoming', nextDate: chosenDateStr, daysUntil, isLate: false, missedCount, missedMonths };
+    }
+    return { status: 'scheduled', nextDate: chosenDateStr, daysUntil, isLate: false, missedCount, missedMonths };
+  }
+
   if (daysUntil < 0) {
-    return { status: 'overdue', nextDate: nextDates[0], daysUntil, isLate: true };
+    return { status: 'overdue', nextDate: chosenDateStr, daysUntil, isLate: true, missedCount: 0, missedMonths: [] };
   }
-  // Solo muestra "upcoming" cuando está dentro de la ventana de alerta
   if (daysUntil <= alertBeforeDays && daysUntil >= 0) {
-    return { status: 'upcoming', nextDate: nextDates[0], daysUntil, isLate: false };
+    return { status: 'upcoming', nextDate: chosenDateStr, daysUntil, isLate: false, missedCount: 0, missedMonths: [] };
   }
-  // Fuera de la ventana de alerta: simplemente programado
-  return { status: 'scheduled', nextDate: nextDates[0], daysUntil, isLate: false };
+  return { status: 'scheduled', nextDate: chosenDateStr, daysUntil, isLate: false, missedCount: 0, missedMonths: [] };
 }
 
 /** Detecta patrones simples a partir de fechas históricas */
@@ -447,4 +492,20 @@ export function predictFutureIncome(
   }
 
   return results;
+}
+
+// ============================================
+// HISTORIAL PERMANENTE DE MOVIMIENTOS
+// ============================================
+
+export interface IncomeHistoryEntry {
+  id: string;
+  sourceId: string;
+  sourceName: string;
+  type: 'transfer' | 'deletion' | 'reactivation';
+  amount: number;
+  date: string;       // Fecha local: "2026-05-24"
+  time: string;       // Hora local: "15:45"
+  category: string;
+  description: string;
 }

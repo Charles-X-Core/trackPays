@@ -18,7 +18,9 @@
 | Fase 4: Reportes/Export | ✅ COMPLETO | 100% |
 | Fase 5: Offline Sync | ✅ COMPLETO | 100% |
 | **BACKEND** | **✅ COMPLETO** | **100%** |
-| UI/Front-end | 🔄 PENDIENTE | 0% |
+| **Income UI** (smart recurrence, history log, filtros) | **✅ COMPLETO** | **~90%** |
+| **Dashboard UI** (Chart.js, glassmorphism, carrusel) | **✅ COMPLETO** | **~90%** |
+| Expenses UI | 🔄 PENDIENTE | 0% |
 
 ---
 
@@ -27,7 +29,7 @@
 ### ✅ FASE 1: Foundation (COMPLETO)
 - [x] Firebase migration
 - [x] Core architecture
-- [x] Basic dashboard
+- [x] Dashboard con Chart.js, glassmorphism, carrusel de balance, mini sparklines
 - [x] Basic auth
 
 ### ✅ FASE 2: Sistema Financiero
@@ -40,11 +42,24 @@
 - [x] Perfil de usuario en Firestore
 
 #### 2.2 Ingresos (COMPLETO)
-- [x] Múltiples fuentes (salary, freelance, business, AFP, otros)
-- [x] Fechas de pago (paymentDayOfMonth)
-- [x] Deducciones (AFP, seguros)
-- [x] Balance inicial
-- [x] Comparación: presupuestado vs recibido
+- [x] 8 categorias de ingreso (active, passive, eventual, digital, transfer, state, business, other)
+- [x] 28 tipos de ingreso (salary, fees, commissions, rental, dividends, etc.)
+- [x] Smart Recurrence Engine: 8 frecuencias (weekly a variable)
+- [x] Edge cases: clampDay, leap year, lastDayOfMonth, first weekday
+- [x] generateOccurrences() calcula 6 proximas fechas
+- [x] calculatePaymentStatus() con overdue/upcoming/scheduled/received/pending
+- [x] detectPattern() reconoce frecuencia desde historial
+- [x] predictFutureIncome() proyeccion a 3 meses
+- [x] Backward compatibility: old paymentSchedule migra automaticamente
+- [x] Income History (log permanente): transfer, deletion, reactivation
+- [x] Propiedades computadas: activeSources, historySources, filteredHistory
+- [x] Amount validation: solo numeros, error message
+- [x] Processing signal: previene doble click
+- [x] Categoria "Otros" → auto-recibido, solo historial
+- [x] Modal confirmacion (verde), eliminacion (rojo), editar (ambar), reactivar (ambar)
+- [x] Filter pills por categoria
+- [x] Tabs: Fuentes Activas / Historial
+- [x] Dashboard integration: actualIncome vs configuredIncome
 
 #### 2.3 Gastos Dual (COMPLETO)
 - [x] Sistema dual (primordial vs no primordial)
@@ -96,37 +111,36 @@
 
 ## Pendiente de Implementar
 
-### Alta Prioridad (FRONT-END)
-1. **Alertas activas en UI** - mostrar alertas al usuario
-2. **Integrar datos reales en Dashboard**
-3. **Mostrar comparativas mensuales en UI**
+### Alta Prioridad
+1. **Gastos UI upgrade** - Smart recurrence, Chart.js, history log, glassmorphism
+2. **Budgets por categoria** - Presupuesto vs real en UI
+3. **Alertas activas en UI** - mostrar alertas al usuario
 
 ### Media Prioridad
-4. **Calendario de pagos** - ver próximos pagos
+4. **Testing unitario**
 5. **Recordatorios** - notificaciones de vencimiento
-6. **Testing unitario**
 
 ### Baja Prioridad
-7. **Analytics persistidos** - guardar analytics por mes
-8. **Insights automáticos** - sugerencias personalizadas
-9. **Detección de transacciones recurrentes**
-10. **OCR de recibos** (Fase 3)
-11. **Open Banking** (Fase 4)
+6. **Analytics persistidos** - guardar analytics por mes
+7. **Insights automaticos** - sugerencias personalizadas
+8. **Deteccion de transacciones recurrentes**
+9. **OCR de recibos** (Fase 3)
+10. **Open Banking** (Fase 4)
 
 ---
 
-## Próximos Pasos Inmediatos
+## Proximos Pasos Inmediatos
 
 ```
-PRÓXIMO SPRINT:
-├── Goals múltiples (priority)
-├── Budget por categoría (priority)
-└── Alertas activas (priority)
+PROXIMO SPRINT:
+├── Gastos UI upgrade (smart recurrence, Chart.js, glassmorphism)
+├── Budgets por categoria (presupuesto vs real)
+└── Alertas activas en UI
 
 SIGUIENTE:
-├── Comparativas mensuales
-├── Calendario de pagos
-└── Recordatorios
+├── Testing unitario
+├── Recordatorios
+└── Analytics persistidos
 ```
 
 ---
@@ -136,14 +150,15 @@ SIGUIENTE:
 | Documento | Descripción |
 |-----------|-------------|
 | `financial-system-master.md` | Sistema completo (v2.0) |
-| `expansion-guide.md` | Cómo expandir sin romper |
-| `backend-analysis-and-methodology.md` | Análisis + metodología |
-| `firestore-architecture.md` | Schema Firestore (visión) |
+| `expansion-guide.md` | Como expandir sin romper |
+| `backend-analysis-and-methodology.md` | Analisis + metodologia |
+| `database-schema.md` | Schema Firestore actualizado |
+| `quick-reference.md` | Referencia rapida con incomeHistory |
 
 ---
 
-**Última actualización**: Mayo 2026  
-**Progreso**: ~65% del sistema completo
+**Ultima actualizacion**: Mayo 2026  
+**Progreso**: ~85% del sistema completo (UI Income + Dashboard terminados)
 
 ---
 
@@ -155,6 +170,6 @@ SIGUIENTE:
 | 002 | Arquitectura Escalable | ✅ COMPLETO | - |
 | 003 | Theme Light | ✅ COMPLETO | - |
 | 004 | Sistema Financiero Completo | ✅ COMPLETO | Mayo 2026 |
-| 005 | Goals Múltiples | ✅ COMPLETO | Mayo 2026 |
-
-> Ver documentación en: `docs/milestones/`
+| 005 | Goals Multiples | ✅ COMPLETO | Mayo 2026 |
+| 006 | Income UI + Smart Recurrence | ✅ COMPLETO | Mayo 2026 |
+| 007 | Dashboard UI (Chart.js + Glassmorphism) | ✅ COMPLETO | Mayo 2026 |

@@ -20,19 +20,22 @@ Track Pays es un **sistema operativo financiero personal** que proporciona:
 |---------|--------------|--------|
 | Months Structure | ✅ | COMPLETO |
 | financialState pre-calculado | ✅ | COMPLETO |
-| Ingresos múltiples con fechas | ✅ | COMPLETO |
+| Ingresos con recurrencia inteligente (Smart Recurrence Engine) | ✅ | COMPLETO |
+| Income History (log permanente de movimientos) | ✅ | COMPLETO |
 | Gastos dual (primordial/no primordial) | ✅ | COMPLETO |
 | Estados de pago | ✅ | COMPLETO |
 | Flujo de caja | ✅ | COMPLETO |
 | Onboarding adaptativo | ✅ | COMPLETO (backend) |
 | Sistema extensible | ✅ | COMPLETO |
-| Goals múltiples | ✅ | COMPLETO |
+| Goals multiples | ✅ | COMPLETO |
 | Transaction CRUD (create/read/update/delete) | ✅ | COMPLETO |
-| **Alertas centralizadas (AlertService)** | ✅ | **COMPLETO** |
-| **Comparativas mensuales (ComparisonService)** | ✅ | **COMPLETO** |
-| **Month Rollover automático** | ✅ | **COMPLETO** |
-| **Reportes/Export (ReportService)** | ✅ | **COMPLETO** |
-| **Offline sync (OfflineSyncService)** | ✅ | **COMPLETO** | |
+| Alertas centralizadas (AlertService) | ✅ | COMPLETO |
+| Comparativas mensuales (ComparisonService) | ✅ | COMPLETO |
+| Month Rollover automatico | ✅ | COMPLETO |
+| Reportes/Export (ReportService) | ✅ | COMPLETO |
+| Offline sync (OfflineSyncService) | ✅ | COMPLETO |
+| **Dashboard UI (Chart.js, glassmorphism, carrusel)** | **✅** | **COMPLETO (~90%)** |
+| **Income Page UI (8 categorias, 28 tipos, filtros, historial)** | **✅** | **COMPLETO (~90%)** |
 
 ---
 
@@ -40,21 +43,33 @@ Track Pays es un **sistema operativo financiero personal** que proporciona:
 
 ```
 users/{userId}/
-├── profile/                          ✅ Onboarding data aquí
+├── profile/                          ✅ Onboarding data aqui
 │   └── (age, employmentType, answers, initialBalance, etc.)
 │
-├── incomeSources/                    ✅ IMPLEMENTADO
+├── incomeSources/                    ✅ IMPLEMENTADO (Smart Recurrence)
 │   └── {sourceId}/
-│       ├── type, name, amount
-│       ├── paymentDayOfMonth         ← Fechas de pago
+│       ├── category, type, name, amount, currency
+│       ├── recurrence                ← RecurrenceRule (8 frecuencias)
+│       ├── nextOccurrences           ← 6 fechas calculadas
+│       ├── paymentStatus             ← { status, nextDate, daysUntil, isLate }
+│       ├── lastReceivedDate, actualAmount
+│       ├── alertBeforeDays, autoCreateTransaction
 │       ├── deductions                ← AFP, seguros
-│       └── actualAmount, lastPaymentDate
+│       ├── isActive, notes
+│       └── createdAt, updatedAt
+│
+├── incomeHistory/                    ✅ IMPLEMENTADO (log permanente)
+│   └── {entryId}/
+│       ├── sourceId, sourceName
+│       ├── type: transfer/deletion/reactivation
+│       ├── amount, date, time, category
+│       └── description               ← editable por usuario
 │
 ├── expenses/                         ✅ IMPLEMENTADO (Sistema Dual)
 │   └── {expenseId}/
-│       ├── isPrimordial              ← Clasificación principal
+│       ├── isPrimordial              ← Clasificacion principal
 │       ├── category                  ← Primordial/NonPrimordial
-│       ├── subcategory               ←细分 (luz, agua, netflix)
+│       ├── subcategory               ← (luz, agua, netflix)
 │       ├── provider, debtDetails     ← Extensible
 │       ├── serviceDetails            ← Extensible
 │       ├── budgetedAmount            ← Presupuesto
@@ -62,7 +77,7 @@ users/{userId}/
 │       ├── dueDayOfMonth             ← Fecha vencimiento
 │       ├── status                    ← pending/partial/paid/overdue
 │       ├── metadata                  ← Extensible
-│       └── tags                      ← Organización
+│       └── tags                      ← Organizacion
 │
 ├── months/{year-month}/              ✅ IMPLEMENTADO
 │   ├── transactions/                 ← Transacciones del mes
@@ -75,34 +90,94 @@ users/{userId}/
 │       ├── financialScore, healthStatus
 │       └── rule50320 breakdown
 │
-├── categories/                       ✅ Básico
-└── goals/                           ⚠️ Solo 1 meta
+├── categories/                       ✅ Basico
+└── goals/                            ✅ Multiples metas
 ```
 
 ---
 
 ## 4. Sistemas Implementados
 
-### 4.1 Ingresos (COMPLETO)
+### 4.1 Ingresos (COMPLETO - Smart Recurrence Engine)
 
 ```
-CARACTERÍSTICAS:
-├── Múltiples fuentes de ingreso
-├── Fecha de pago configurable (día del mes)
-├── Deducciones automáticas (AFP, seguros)
-├── Ingresos variables vs fijos
-├── Initial balance (ahorros anteriores)
-└── Comparación: presupuestado vs recibido
+SISTEMA DE 8 CATEGORIAS + 28 TIPOS:
+├── Activos: salary, fees, commissions, overtime
+├── Pasivos: rental, interest, dividends, royalties
+├── Eventuales: gratification, cts, bonus, settlement
+├── Digitales: content, affiliates, digital_products, crypto
+├── Transferencias: family, pension_alimony
+├── Estado: subsidies, state_pension
+├── Negocio: business_sales, business_services, business_investment_return
+└── Otros: prize, refund, unique_income, unexpected_event, other
+
+SMART RECURRENCE ENGINE (8 frecuencias):
+├── weekly       → semana con dia configurable (Lun-Dom)
+├── biweekly     → dos modos: two_dates (dias fijos) o every_15 (cada 15 dias)
+├── monthly      → 3 reglas: day (dia fijo), last_day, first_weekday
+├── bimonthly    → cada 2 meses
+├── quarterly    → cada 3 meses
+├── semi_annual  → cada 6 meses
+├── annual       → mes + dia configurable
+└── variable     → puntual/unico, va directo a historial
+
+EDGE CASES CUBIERTOS:
+├── clampDay()       → Feb 30 → Feb 28/29
+├── isLeapYear()     → Feb 29 solo en bisiesto
+├── lastDayOfMonth() → ultimo dia valido
+├── firstWeekdayOfMonth() → primer Lun, primer Vie, etc.
+├── generateOccurrences() → genera 6 fechas, arranca desde hoy si startDate paso
+├── calculatePaymentStatus() → overdue/upcoming/scheduled/received/pending
+├── safety counter en bucle → max 100 iteraciones
+└── detectPattern()  → detecta frecuencia desde historial de fechas
+
+PERMANENT HISTORY LOG (incomeHistory):
+├── type: transfer (verde) → cuando se marca como recibido
+├── type: deletion (rojo)  → cuando se elimina fuente
+├── type: reactivation (ambar) → cuando se reactiva desde historial
+├── description editable inline
+└── coleccion plana (no por mes), ordenada por date+time desc
+
+DASHBOARD INTEGRATION:
+├── actualIncome = suma de transacciones reales (ingresos positivos)
+├── configuredIncome = suma de montos de fuentes activas
+├── monthlyReceived = de transacciones, no de source.actualAmount
+├── Chart.js: balance chart (linea diaria), comparacion income vs expenses (barra)
+├── Mini sparklines: income, expenses, savings (6 meses de historial)
+└── Income popups rotator cada 5s: alertas de pagos proximos/atrasados/tips
+
+UI FEATURES:
+├── Filter pills por categoria (8 categorias + "Todos")
+├── Tabs: Fuentes Activas | Historial
+├── Categoria "Otros" → auto-recibido, solo historial, sin tab Fuentes Activas
+├── Modal confirmacion personalizado (verde) para marcar recibido
+├── Modal eliminacion (rojo) con advertencia "No se puede deshacer"
+├── Modal editar (ambar) avisando que ya fue recibido
+├── Modal reactivar (ambar) desde entries de deletion
+├── Processing signal bloquea doble click en todas las acciones
+├── Amount validation: solo numeros, error "No es un monto valido"
+├── Glassmorphism: rgba(255,255,255,0.08), backdrop-filter blur(16px)
+└── OnPush change detection con computed signals
 
 EJEMPLO:
 {
-  "salary": { amount: 2500, dayOfMonth: 15, deductions: { afp: 13% } },
-  "freelance": { amount: 800, dayOfMonth: null },
-  "initialBalance": 500
+  "category": "active",
+  "type": "salary",
+  "name": "Sueldo Empresa ABC",
+  "amount": 2500,
+  "recurrence": {
+    "frequency": "monthly",
+    "startDate": "2026-01-15",
+    "monthlyRule": { "kind": "day", "day": 15 }
+  },
+  "nextOccurrences": ["2026-05-15", "2026-06-15", "2026-07-15"],
+  "paymentStatus": { "status": "upcoming", "nextDate": "2026-05-15", "daysUntil": 2, "isLate": false },
+  "alertBeforeDays": 3,
+  "isActive": true
 }
 
-DISPONIBLE AHORA: S/ 3,000 (initial + received)
-ESPERADO FIN DE MES: S/ 3,800 (initial + budgeted)
+INGRESO CONFIGURADO: S/ 2,500 (suma de fuentes activas)
+INGRESO REAL: S/ 2,500 (suma de transacciones income del mes)
 ```
 
 ### 4.2 Gastos (COMPLETO - Sistema Dual)
@@ -179,21 +254,20 @@ PREGUNTAS COMUNES:
 ## 5. Próximos Pasos (Roadmap)
 
 ### Alta Prioridad:
-1. Goals múltiples
-2. Budgets por categoría (presupuesto vs real)
-3. Alertas activas automáticas
+1. Budgets por categoria (presupuesto vs real)
+2. Gastos UI upgrade (smart recurrence, Chart.js, history log similar a income)
 
 ### Media Prioridad:
-4. Comparativas mensuales (este vs anterior)
-5. Calendario de pagos próximos
-6. Recordatorios de vencimiento
+3. Alertas activas en UI (rotator similar a income popups)
+4. Calendario de pagos proximos
+5. Recordatorios de vencimiento
 
 ### Baja Prioridad:
-7. Analytics persistidos
-8. Insights automáticos
-9. Detección de transacciones recurrentes
-10. OCR de recibos
-11. Open Banking
+6. Analytics persistidos
+7. Insights automaticos
+8. Deteccion de transacciones recurrentes
+9. OCR de recibos
+10. Open Banking
 
 ---
 
@@ -210,25 +284,30 @@ PREGUNTAS COMUNES:
 
 ### Modelos principales:
 - `Transaction` - Transacciones financieras
-- `IncomeSource` - Fuentes de ingreso con fechas
-- `Expense` - Gastos con clasificación dual
+- `IncomeSource` - Fuentes de ingreso con recurrencia inteligente (RecurrenceRule, 8 frecuencias)
+- `RecurrenceRule` - Motor de recurrencia: frequency, startDate, weeklyDays, biweeklyMode, monthlyRule, annualMonth/Day
+- `IncomeCategory` - 8 categorias: active, passive, eventual, digital, transfer, state, business, other
+- `IncomeType` - 28 tipos: salary, fees, commissions, rental, dividends, etc.
+- `IncomeHistoryEntry` - Log permanente: transfer/deletion/reactivation con date+time
+- `MonthlyIncome` - Agregacion mensual: byCategory, predictions, totals
+- `Expense` - Gastos con clasificacion dual
 - `SavingGoal` - Metas de ahorro
 - `OnboardingResponse` - Respuestas de onboarding
 
 ### Servicios principales:
-- `FirebaseService` - Conexión Firestore
+- `FirebaseService` - Conexion Firestore
 - `TransactionService` - Transacciones (CRUD completo)
-- `IncomeService` - Ingresos múltiples con fechas
+- `IncomeService` - Ingresos con smart recurrence, CRUD + markAsReceived + incomeHistory
 - `ExpenseService` - Sistema dual de gastos
-- `BudgetService` - Presupuestos por categoría
-- `GoalService` - Metas de ahorro múltiples
+- `BudgetService` - Presupuestos por categoria
+- `GoalService` - Metas de ahorro multiples
 - `ComparisonService` - Comparativas mensuales
 - `AlertsService` - Alertas centralizadas
-- `MonthRolloverService` - Gestión automática de meses
-- `ReportService` - Exportación de datos
-- `OfflineSyncService` - Sincronización offline
+- `MonthRolloverService` - Gestion automatica de meses
+- `ReportService` - Exportacion de datos
+- `OfflineSyncService` - Sincronizacion offline
 - `OnboardingService` - Onboarding adaptativo
-- `AuthService` - Autenticación
+- `AuthService` - Autenticacion
 
 ---
 
@@ -369,5 +448,5 @@ await offlineService.clearCache();
 
 ---
 
-**Última actualización**: Mayo 2026  
-**Estado**: 100% del sistema completo implementado ✅
+**Ultima actualizacion**: Mayo 2026  
+**Estado**: 100% del sistema completo implementado (incluyendo UI de Dashboard e Income) ✅

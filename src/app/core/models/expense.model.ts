@@ -21,7 +21,8 @@ export type NonPrimordialCategory =
   | 'clothing'        // Ropa y accesorios
   | 'travel'          // Viajes y vacaciones
   | 'shopping'        // Compras diversas
-  | 'subscriptions';  // Suscripciones varias
+  | 'subscriptions'  // Suscripciones varias
+  | 'other';          // Otros gastos varios
 
 // ============================================
 // CATEGORÍAS EXPANDIBLES (para futuro)
@@ -84,6 +85,8 @@ export interface Expense {
   
   // Fechas
   dueDayOfMonth: number | null;        // Día de vencimiento (ej: 15)
+  availableDate?: string;               // Fecha de inicio de ventana (YYYY-MM-DD)
+  dueDate?: string;                     // Fecha de vencimiento completa (YYYY-MM-DD)
   optimalPaymentDay?: number;           // Día óptimo para pagar (calculado)
   paymentDate?: string;                 // Fecha cuando se pagó
   startDate: string;                    // Desde cuándo aplica
@@ -93,6 +96,9 @@ export interface Expense {
   status: PaymentStatus;
   isRecurring: boolean;
   frequency: ExpenseFrequency;
+  
+  // Transacción asociada (cuando se marca como pagado)
+  transactionId?: string;
   
   // Para suscripciones
   isSubscription?: boolean;
@@ -173,6 +179,8 @@ export interface ExpensePayload {
   description?: string;
   budgetedAmount: number;
   dueDayOfMonth: number | null;
+  availableDate?: string;
+  dueDate?: string;
   isRecurring: boolean;
   frequency: ExpenseFrequency;
   isSubscription?: boolean;
@@ -252,7 +260,33 @@ export const NON_PRIMORDIAL_CATEGORIES: Record<NonPrimordialCategory, { name: st
   clothing: { name: 'Ropa', icon: 'shirt' },
   travel: { name: 'Viajes', icon: 'plane' },
   shopping: { name: 'Compras', icon: 'shopping-bag' },
-  subscriptions: { name: 'Suscripciones', icon: 'repeat' }
+  subscriptions: { name: 'Suscripciones', icon: 'repeat' },
+  other: { name: 'Otros', icon: 'package' }
+};
+
+// ============================================
+// SUBCATEGORÍAS PREDEFINIDAS POR CATEGORÍA
+// ============================================
+
+export const SUBCATEGORIES_BY_CATEGORY: Record<string, string[]> = {
+  // Primordiales
+  housing:    ['Alquiler', 'Hipoteca', 'Cuota de casa'],
+  utilities:  ['Luz', 'Agua', 'Internet', 'Gas', 'Teléfono'],
+  transport:  ['Pasajes', 'Gasolina', 'Peaje', 'Taxi', 'Mantenimiento'],
+  health:     ['EPS', 'Seguro', 'Medicamentos', 'Consulta', 'Dentista'],
+  groceries:  ['Supermercado', 'Verdulería', 'Carnicería', 'Mercado'],
+  education:  ['Colegiatura', 'Universidad', 'Curso', 'Libros'],
+  debt:       ['Tarjeta crédito', 'Préstamo', 'Crédito', 'Cuota'],
+  // No primordiales
+  streaming:     ['Netflix', 'Spotify', 'Amazon Prime', 'Disney+', 'HBO Max', 'Crunchyroll'],
+  dining_out:    ['Restaurantes', 'Delivery', 'Café', 'Fast Food'],
+  entertainment: ['Cine', 'Concierto', 'Bar', 'Juego', 'Deporte'],
+  pets:          ['Alimento', 'Veterinaria', 'Accesorios', 'Peluquería'],
+  clothing:      ['Ropa', 'Calzado', 'Accesorios'],
+  travel:        ['Pasaje aéreo', 'Hotel', 'Alojamiento', 'Alquiler auto'],
+  shopping:      ['Compras', 'Regalos', 'Hogar', 'Tecnología'],
+  subscriptions: ['Gimnasio', 'Software', 'Apps', 'Membresía'],
+  other:         ['Otro']
 };
 
 // Helper para obtener todas las categorías

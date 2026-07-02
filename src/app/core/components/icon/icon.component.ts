@@ -1,7 +1,7 @@
 import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { LUCIDE_ICONS } from '../../utils/lucide-icons';
+import { LUCIDE_ICONS, BRAND_ICONS } from '../../utils/lucide-icons';
 
 @Component({
   selector: 'app-icon',
@@ -12,9 +12,9 @@ import { LUCIDE_ICONS } from '../../utils/lucide-icons';
       [attr.width]="size"
       [attr.height]="size"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
+      [attr.fill]="isBrand ? 'none' : 'none'"
+      [attr.stroke]="isBrand ? 'none' : 'currentColor'"
+      [attr.stroke-width]="isBrand ? '0' : '2'"
       stroke-linecap="round"
       stroke-linejoin="round"
       [innerHTML]="svgContent"
@@ -39,8 +39,12 @@ export class IconComponent {
   @Input() name = '';
   @Input() size: number | string = 16;
 
+  get isBrand(): boolean {
+    return this.name.startsWith('brand-');
+  }
+
   get svgContent(): SafeHtml {
-    const raw = LUCIDE_ICONS[this.name];
+    const raw = this.isBrand ? BRAND_ICONS[this.name] : LUCIDE_ICONS[this.name];
     if (!raw) return '';
     return this.sanitizer.bypassSecurityTrustHtml(raw);
   }

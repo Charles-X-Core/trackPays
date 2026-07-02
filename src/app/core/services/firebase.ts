@@ -519,6 +519,32 @@ export class FirebaseService {
   }
 
   // ============================================
+  // INCOME HISTORY (Permanent Movement Log)
+  // ============================================
+
+  async addIncomeHistory(userId: string, entry: any): Promise<string> {
+    const docRef = doc(collection(this.firestore, `users/${userId}/incomeHistory`));
+    await setDoc(docRef, { ...entry, id: docRef.id });
+    return docRef.id;
+  }
+
+  async getIncomeHistory(userId: string): Promise<any[]> {
+    const snapshot = await getDocs(collection(this.firestore, `users/${userId}/incomeHistory`));
+    const entries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Ordenar por fecha y hora descendente en el cliente
+    return entries.sort((a: any, b: any) => {
+      const dateCompare = (b.date || '').localeCompare(a.date || '');
+      if (dateCompare !== 0) return dateCompare;
+      return (b.time || '').localeCompare(a.time || '');
+    });
+  }
+
+  async updateIncomeHistory(userId: string, entryId: string, data: any): Promise<void> {
+    const docRef = doc(this.firestore, `users/${userId}/incomeHistory/${entryId}`);
+    await setDoc(docRef, data, { merge: true });
+  }
+
+  // ============================================
   // INITIAL BALANCE
   // ============================================
   
@@ -693,6 +719,7 @@ export class FirebaseService {
     await setDoc(docRef, {
       status: 'cancelled',
       isRecurring: false,
+      isActive: false,
       updatedAt: new Date().toISOString()
     }, { merge: true });
   }

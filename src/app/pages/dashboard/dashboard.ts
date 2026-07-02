@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -10,15 +10,17 @@ import { FirebaseService } from '../../core/services/firebase';
 import { Transaction } from '../../core/models/transaction.model';
 import { SavingGoal } from '../../core/models/goal.model';
 import { MonthlyIncome } from '../../core/models/income.model';
+import { IconComponent } from '../../core/components/icon/icon.component';
+import { BaseChartDirective } from 'ng2-charts';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, IconComponent, BaseChartDirective],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
 
   private authService        = inject(Auth);
   private transactionService = inject(TransactionService);
@@ -31,6 +33,148 @@ export class DashboardComponent implements OnInit {
   goal           = signal<SavingGoal | null>(null);
   monthlyIncome  = signal<MonthlyIncome | null>(null);
   actualBalance  = signal<number>(0);
+  incomeSources  = signal<any[]>([]);
+  incomePopups   = signal<{message: string, type: 'alert' | 'tip' | 'info', icon: string}[]>([]);
+  currentPopupIndex = signal(0);
+  currentPopup = computed(() => this.incomePopups()[this.currentPopupIndex()] ?? null);
+  popupInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Balance Card Carrusel
+  currentBalanceView = signal(0);
+  totalBalanceViews = 2;
+  isBalanceExpanded = signal(false);
+  Math = Math;
+
+  // ─── Chart.js Config ───
+  // Balance Chart (versión completa)
+  balanceChartData: any = {
+    labels: [],
+    datasets: [{
+      data: [],
+      borderColor: '#2FA46A',
+      backgroundColor: 'rgba(47, 164, 106, 0.15)',
+      borderWidth: 3,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 6,
+      pointHoverBackgroundColor: '#2FA46A',
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  };
+
+  balanceChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        titleColor: 'rgba(255,255,255,0.7)',
+        bodyColor: '#fff',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 10,
+        displayColors: false,
+        callbacks: {
+          label: (ctx: any) => `S/ ${ctx.parsed.y.toLocaleString()}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } }
+      },
+      y: {
+        grid: { color: 'rgba(255,255,255,0.06)', drawBorder: false },
+        ticks: { 
+          color: 'rgba(255,255,255,0.4)', 
+          font: { size: 10 },
+          callback: (val: any) => `S/ ${(Number(val) / 1000).toFixed(0)}k`
+        }
+      }
+    },
+    interaction: { intersect: false, mode: 'index' }
+  };
+
+  // Balance Mini Chart (versión reducida)
+  balanceMiniChartData: any = {
+    labels: [],
+    datasets: [{
+      data: [],
+      borderColor: '#2FA46A',
+      backgroundColor: 'rgba(47, 164, 106, 0.2)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0
+    }]
+  };
+
+  balanceMiniChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    scales: { x: { display: false }, y: { display: false } },
+    elements: { line: { borderWidth: 2 } }
+  };
+
+  toggleBalanceSize() {
+    this.isBalanceExpanded.update(v => !v);
+  }
+
+  // Income vs Expense Chart
+  comparisonChartData: any = {
+    labels: ['Ingresos', 'Gastos'],
+    datasets: [{
+      data: [0, 0],
+      backgroundColor: ['#22c55e', '#ef4444'],
+      borderRadius: 6,
+      barThickness: 24
+    }]
+  };
+
+  comparisonChartOptions: any = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        bodyColor: '#fff',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx: any) => `S/ ${ctx.parsed.x.toLocaleString()}`
+        }
+      }
+    },
+    scales: {
+      x: { display: false },
+      y: {
+        grid: { display: false },
+        ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 } }
+      }
+    }
+  };
+
+  // Mini charts for metric cards
+  incomeMiniChartData: any = { labels: [], datasets: [] };
+  expenseMiniChartData: any = { labels: [], datasets: [] };
+  savingsMiniChartData: any = { labels: [], datasets: [] };
+
+  miniChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    scales: { x: { display: false }, y: { display: false } },
+    elements: { line: { borderWidth: 2, tension: 0.4 } }
+  };
 
   now       = new Date();
   monthName = this.now.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
@@ -111,24 +255,27 @@ export class DashboardComponent implements OnInit {
 
   // Cargar historial de meses para gráficos
   async loadMonthlyHistory() {
-    const history: { month: number; year: number; income: number; expenses: number; savings: number }[] = [];
     const now = new Date();
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return { year: d.getFullYear(), month: d.getMonth() + 1 };
+    });
 
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const txs = await this.transactionService.getByMonth(d.getFullYear(), d.getMonth() + 1);
-      const totals = this.transactionService.calcTotals(txs);
-      
-      history.push({
-        month: d.getMonth() + 1,
-        year: d.getFullYear(),
-        income: totals.income,
-        expenses: Math.abs(totals.expenses),
-        savings: totals.balance
-      });
-    }
+    const results = await Promise.all(
+      months.map(async ({ year, month }) => {
+        const txs = await this.transactionService.getByMonth(year, month);
+        const totals = this.transactionService.calcTotals(txs);
+        return {
+          month,
+          year,
+          income: totals.income,
+          expenses: Math.abs(totals.expenses),
+          savings: totals.balance
+        };
+      })
+    );
 
-    this.monthlyHistory.set(history);
+    this.monthlyHistory.set(results);
   }
 
   // Comparación vs mes anterior
@@ -154,72 +301,15 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  // Generar path SVG para gráfico de línea
-  getChartPath(values: number[], height: number = 40, padding: number = 5): string {
-    const data = values.filter(v => v > 0);
-    if (data.length < 2) return '';
-    
-    const max = Math.max(...data);
-    const min = Math.min(...data);
-    const range = max - min || 1;
-    const width = 200 - padding * 2;
-    const step = width / (data.length - 1);
-
-    return data.map((v, i) => 
-      `${i === 0 ? 'M' : 'L'} ${i * step + padding},${height - padding - ((v - min) / range) * (height - padding * 2)}`
-    ).join(' ');
+  // Datos del día actual para el chart
+  get currentDay(): number {
+    return new Date().getDate();
   }
 
-  // Generar área bajo la curva
-  getChartArea(values: number[], height: number = 40, padding: number = 5): string {
-    const path = this.getChartPath(values, height, padding);
-    if (!path) return '';
-    const width = 200 - padding * 2;
-    return `${path} L ${width + padding},${height - padding} L ${padding},${height - padding} Z`;
-  }
-
-  // Mini chart para métricas pequeñas (60x20 viewBox)
-  getMiniChartPath(values: number[]): string {
-    const data = values.filter(v => v >= 0);
-    if (data.length < 2) return '';
-    
-    const max = Math.max(...data, 1);
-    const min = Math.min(...data);
-    const range = max - min || 1;
-    const width = 58;
-    const height = 18;
-    const padding = 2;
-    const step = width / (data.length - 1);
-
-    return data.map((v, i) => 
-      `${i === 0 ? 'M' : 'L'} ${i * step + padding},${height - padding - ((v - min) / range) * (height - padding * 2)}`
-    ).join(' ');
-  }
-
-  // Getter para paths dinámicos
-  get balanceChartPath(): string {
-    const values = this.monthlyHistory().map(h => h.savings);
-    return this.getChartPath(values);
-  }
-
-  get balanceChartArea(): string {
-    const values = this.monthlyHistory().map(h => h.savings);
-    return this.getChartArea(values);
-  }
-
-  get incomeChartPath(): string {
-    const values = this.monthlyHistory().map(h => h.income);
-    return this.getChartPath(values);
-  }
-
-  get expenseChartPath(): string {
-    const values = this.monthlyHistory().map(h => h.expenses);
-    return this.getChartPath(values);
-  }
-
-  get savingsChartPath(): string {
-    const values = this.monthlyHistory().map(h => h.savings > 0 ? h.savings : 0);
-    return this.getChartPath(values);
+  get daysRemaining(): number {
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    return daysInMonth - this.currentDay;
   }
 
   async ngOnInit() {
@@ -241,6 +331,16 @@ export class DashboardComponent implements OnInit {
       } catch (e) {
         console.error('Error loading income sources:', e);
       }
+      this.incomeSources.set(activeIncomes);
+
+      // Cargar ingreso mensual
+      try {
+        this.monthlyIncome.set(
+          await this.incomeService.getMonthlyIncome(this.now.getFullYear(), this.now.getMonth() + 1)
+        );
+      } catch (e) {
+        console.error('Error loading monthly income:', e);
+      }
 
       // Cargar metas y transacciones
       const [txs, goals] = await Promise.all([
@@ -252,7 +352,7 @@ export class DashboardComponent implements OnInit {
       const activeGoal = goals.find(g => g.status === 'active') || goals[0] || null;
       this.goal.set(activeGoal);
 
-      // Obtener estado financiero real (initialBalance + recibido - gastos)
+      // Obtener estado financiero real
       let fs: any = null;
       try {
         fs = await this.firebaseService.getFinancialState(userId, this.now.getFullYear(), this.now.getMonth() + 1);
@@ -263,7 +363,16 @@ export class DashboardComponent implements OnInit {
       const receivedIncome = txTotals.income;
       const actualBalanceVal = initialBalance + receivedIncome - Math.abs(txTotals.expenses);
 
-this.actualBalance.set(actualBalanceVal);
+      // Calcular distribución 50/30/20 basado en ingreso total
+      const totalIncome = txTotals.income || this.configuredIncome || 0;
+      this.byRule = {
+        need: totalIncome * 0.5,
+        want: totalIncome * 0.3,
+        saving: totalIncome * 0.2
+      };
+      this.byCategory = this.transactionService.calcByCategory(txs);
+
+      this.actualBalance.set(actualBalanceVal);
       this.totals = {
         income: totalConfiguredIncome,
         expenses: txTotals.expenses,
@@ -273,17 +382,169 @@ this.actualBalance.set(actualBalanceVal);
       this.configuredIncome = totalConfiguredIncome;
       this.actualIncome = txTotals.income;
 
-      // Calcular sobrante del mes
       this.monthlySurplus = this.totals.income - this.totals.expenses;
 
-      // Cargar historial para gráficos
       await this.loadMonthlyHistory();
-      
-      // Calcular comparación con mes anterior
       this.calculateMonthOverMonth();
+
+      // Generar popups del card de ingresos
+      this.generateIncomePopups();
+      
+      // Actualizar datos de charts
+      this.updateChartData();
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  private generateIncomePopups() {
+    const popups: {message: string, type: 'alert' | 'tip' | 'info', icon: string}[] = [];
+    const sources = this.incomeSources();
+
+    // 1. Pagos próximos (3 días)
+    sources.forEach(s => {
+      if (s.paymentStatus?.daysUntil != null && s.paymentStatus.daysUntil >= 0 && s.paymentStatus.daysUntil <= 3 && s.paymentStatus.status !== 'received') {
+        const days = s.paymentStatus.daysUntil;
+        const label = days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `en ${days} días`;
+        popups.push({ message: `${s.name} vence ${label}`, type: 'alert', icon: 'clock' });
+      }
+    });
+
+    // 2. Pagos atrasados
+    sources.forEach(s => {
+      if (s.paymentStatus?.status === 'overdue') {
+        popups.push({ message: `${s.name} está atrasado`, type: 'alert', icon: 'alert-triangle' });
+      }
+    });
+
+    // 3. Tips financieros
+    if (this.incomeChange > 10) {
+      popups.push({ message: 'Tus ingresos subieron este mes, sigue así', type: 'tip', icon: 'trending-up' });
+    }
+    if (this.expenseChange > 15) {
+      popups.push({ message: 'Tus gastos subieron más del 15%', type: 'tip', icon: 'alert-triangle' });
+    }
+
+    // 4. Fallback: si no hay alertas, mostrar info útil
+    if (popups.length === 0 && sources.length > 0) {
+      const pending = sources.filter(s => s.paymentStatus?.status === 'scheduled' || s.paymentStatus?.status === 'pending');
+      if (pending.length > 0) {
+        const next = pending.sort((a, b) => (a.paymentStatus?.daysUntil ?? 999) - (b.paymentStatus?.daysUntil ?? 999))[0];
+        const days = next.paymentStatus?.daysUntil;
+        if (days != null && days > 3) {
+          popups.push({ message: `${next.name} en ${days} días`, type: 'info', icon: 'clock' });
+        }
+      }
+      if (popups.length === 0) {
+        popups.push({ message: 'Registra tus ingresos para ver alertas', type: 'tip', icon: 'info' });
+      }
+    }
+
+    this.incomePopups.set(popups.slice(0, 3));
+    this.currentPopupIndex.set(0);
+    this.startPopupRotation();
+  }
+
+  private startPopupRotation() {
+    if (this.popupInterval) {
+      clearInterval(this.popupInterval);
+      this.popupInterval = null;
+    }
+    const total = this.incomePopups().length;
+    if (total <= 1) return;
+    this.popupInterval = setInterval(() => {
+      this.currentPopupIndex.update(i => (i + 1) % total);
+    }, 5000);
+  }
+
+  ngOnDestroy() {
+    if (this.popupInterval) {
+      clearInterval(this.popupInterval);
+      this.popupInterval = null;
+    }
+  }
+
+  // ─── Actualizar datos de charts ───
+  private updateChartData() {
+    // Balance chart - datos por día
+    const txs = this.transactions();
+    const now = new Date();
+    const currentDay = now.getDate();
+    
+    let balance = 0;
+    const labels: string[] = [];
+    const data: number[] = [];
+    
+    for (let day = 1; day <= currentDay; day++) {
+      const dayTxs = txs.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate.getDate() === day && txDate.getMonth() === now.getMonth();
+      });
+      dayTxs.forEach(tx => { balance += tx.amount; });
+      labels.push(`${day}`);
+      data.push(Math.round(balance * 100) / 100);
+    }
+    
+    // Balance chart (full)
+    this.balanceChartData = {
+      labels,
+      datasets: [{
+        ...this.balanceChartData.datasets[0],
+        data
+      }]
+    };
+    
+    // Balance mini chart
+    this.balanceMiniChartData = {
+      labels,
+      datasets: [{
+        ...this.balanceMiniChartData.datasets[0],
+        data
+      }]
+    };
+    
+    // Comparison chart - Ingresos vs Gastos
+    this.comparisonChartData = {
+      labels: ['Ingresos', 'Gastos'],
+      datasets: [{
+        data: [this.totals.income, this.totals.expenses],
+        backgroundColor: ['#22c55e', '#ef4444'],
+        borderRadius: 6,
+        barThickness: 24
+      }]
+    };
+    
+    // Mini charts
+    const hist = this.monthlyHistory();
+    const histLabels = hist.map(h => `${h.month}`);
+    
+    this.incomeMiniChartData = {
+      labels: histLabels,
+      datasets: [{ data: hist.map(h => h.income), borderColor: 'rgba(255,255,255,0.6)', backgroundColor: 'rgba(255,255,255,0.1)', fill: true, tension: 0.4 }]
+    };
+    
+    this.expenseMiniChartData = {
+      labels: histLabels,
+      datasets: [{ data: hist.map(h => h.expenses), borderColor: 'rgba(255,255,255,0.6)', backgroundColor: 'rgba(255,255,255,0.1)', fill: true, tension: 0.4 }]
+    };
+    
+    this.savingsMiniChartData = {
+      labels: histLabels,
+      datasets: [{ data: hist.map(h => h.savings > 0 ? h.savings : 0), borderColor: 'rgba(255,255,255,0.6)', backgroundColor: 'rgba(255,255,255,0.1)', fill: true, tension: 0.4 }]
+    };
+  }
+
+  // ─── Balance Card Carrusel ────────────────────────────────
+  nextBalanceView() {
+    this.currentBalanceView.update(v => (v + 1) % this.totalBalanceViews);
+  }
+
+  prevBalanceView() {
+    this.currentBalanceView.update(v => (v - 1 + this.totalBalanceViews) % this.totalBalanceViews);
+  }
+
+  setBalanceView(index: number) {
+    this.currentBalanceView.set(index);
   }
 
   // ─── Quick Entry ─────────────────────────────────────────

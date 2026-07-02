@@ -1,9 +1,9 @@
-# 🗂️ Estructura de Datos NoSQL - Track Pays
+# Estructura de Datos NoSQL - Track Pays
 ## Base de datos Firestore (NoSQL - Document Store)
 
 ---
 
-## 📊 DIAGRAMA GENERAL
+## DIAGRAMA GENERAL
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
@@ -17,8 +17,13 @@
 │       │               onboardingCompleted, initialBalance, ... }                │
 │       │                                                                           │
 │       ├── incomeSources/{sourceId} ──────────────────────────────────────────   │
-│       │    { type, name, amount, frequency, paymentDayOfMonth, isActive,        │
-│       │      actualAmount, lastPaymentDate, isRecurring, deductions, ... }      │
+│       │    { category, type, name, amount, recurrence, nextOccurrences,         │
+│       │      paymentStatus, isActive, actualAmount, lastReceivedDate,           │
+│       │      alertBeforeDays, autoCreateTransaction, deductions, notes, ... }   │
+│       │                                                                           │
+│       ├── incomeHistory/{entryId} ───────────────────────────────────────────   │
+│       │    { sourceId, sourceName, type, amount, date, time,                    │
+│       │      category, description }                                           │
 │       │                                                                           │
 │       ├── expenses/{expenseId} ──────────────────────────────────────────────   │
 │       │    { isPrimordial, category, subcategory, name, provider,                │
@@ -31,7 +36,7 @@
 │       │      contributions[], ... }                                            │
 │       │                                                                           │
 │       ├── categories/{categoryId} ──────────────────────────────────────────   │
-│       │    ⚠️ OBSOLETO (no se usa)                                              │
+│       │    OBSOLETO (no se usa)                                              │
 │       │                                                                           │
 │       └── months/{monthId} ──────────────────────────────────────────────────   │
 │            │                                                                       │
@@ -94,31 +99,94 @@
 ---
 
 ### 2. users/{userId}/incomeSources/{sourceId}
-| Campo | Tipo | Descripción |
+
+| Campo | Tipo | Descripcion |
 |-------|------|-------------|
 | id | string | ID de la fuente |
 | userId | string | UID del usuario |
-| type | string | salary/freelance/business/afp/rental/dividends/allowance/other |
+| category | IncomeCategory | active/passive/eventual/digital/transfer/state/business/other |
+| type | IncomeType | salary/fees/commissions/overtime/rental/... (28 tipos) |
 | name | string | Nombre (ej: "Sueldo Empresa") |
+| description | string? | Descripcion opcional |
 | amount | number | Monto presupuestado |
-| actualAmount | number | Monto recibido realmente |
-| frequency | string | weekly/biweekly/monthly |
-| paymentDayOfMonth | number | Día de pago del mes |
-| firstPaymentDate | string | Primera fecha de pago |
-| lastPaymentDate | string | Última fecha de pago |
-| isActive | boolean | Si está activa |
-| isRecurring | boolean | Si es recurrente |
-| deductions | object | AFP, seguros, etc |
-| notes | string | Notas adicionales |
-| createdAt | string | Fecha de creación |
-| updatedAt | string | Fecha de actualización |
+| actualAmount | number? | Monto recibido realmente (se setea en markAsReceived) |
+| currency | string | Moneda (default: "PEN") |
+| recurrence | RecurrenceRule | { frequency, startDate, weeklyDays?, biweeklyMode?, biweeklyDates?, monthlyRule?, annualMonth?, annualDay?, endDate? } |
+| nextOccurrences | string[] | Proximas 6 fechas calculadas ["2026-05-15", "2026-06-15", ...] |
+| lastReceivedDate | string? | Ultima fecha de ingreso recibido (YYYY-MM-DD) |
+| paymentStatus | PaymentStatus | { status, nextDate, daysUntil, isLate } |
+| alertBeforeDays | number? | Dias antes para alertar (min 1, default 3) |
+| autoCreateTransaction | boolean? | Crear transaccion al recibir |
+| deductions | object? | { afpPercent?, insurancePercent?, fifthCategoryPercent?, otherDeductions? } |
+| isActive | boolean | Si esta activa |
+| notes | string? | Notas adicionales |
+| createdAt | string | Fecha de creacion |
+| updatedAt | string | Fecha de actualizacion |
 
-**Relación**: Un usuario puede tener MÚLTIPLES incomeSources
+**RecurrenceRule (sub-objeto):**
+```
+{
+  frequency: 'weekly' | 'biweekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semi_annual' | 'annual' | 'variable',
+  startDate: string (YYYY-MM-DD),
+  weeklyDays?: number[],             // [1=Lun, 2=Mar, ..., 0=Dom]
+  biweeklyMode?: 'two_dates' | 'every_15',
+  biweeklyDates?: [number, number],  // ej: [15, 30]
+  monthlyRule?: { kind: 'day', day: number }
+              | { kind: 'last_day' }
+              | { kind: 'first_weekday', weekday: number },
+  annualMonth?: number,              // 0-11
+  annualDay?: number,                // 1-31
+  endDate?: string | null
+}
+```
+
+**PaymentStatus (sub-objeto):**
+```
+{
+  status: 'scheduled' | 'upcoming' | 'overdue' | 'received' | 'pending',
+  nextDate: string | null,
+  daysUntil: number | null,
+  isLate: boolean
+}
+```
+
+**IncomeCategory (enum):** `'active' | 'passive' | 'eventual' | 'digital' | 'transfer' | 'state' | 'business' | 'other'`
+
+**IncomeType (28 valores):**
+- **active:** salary, fees, commissions, overtime
+- **passive:** rental, interest, dividends, royalties
+- **eventual:** gratification, cts, bonus, settlement
+- **digital:** content, affiliates, digital_products, crypto
+- **transfer:** family, pension_alimony
+- **state:** subsidies, state_pension
+- **business:** business_sales, business_services, business_investment_return
+- **other:** prize, refund, unique_income, unexpected_event, other
+
+**Relacion**: Un usuario puede tener MULTIPLES incomeSources
 
 ---
 
-### 3. users/{userId}/expenses/{expenseId}
-| Campo | Tipo | Descripción |
+### 3. users/{userId}/incomeHistory/{entryId}
+
+| Campo | Tipo | Descripcion |
+|-------|------|-------------|
+| id | string | ID del entry |
+| sourceId | string | ID de la fuente de ingreso relacionada |
+| sourceName | string | Nombre de la fuente al momento del evento |
+| type | string | transfer/deletion/reactivation |
+| amount | number | Monto involucrado |
+| date | string | Fecha local (YYYY-MM-DD) |
+| time | string | Hora local (HH:mm) |
+| category | string | Categoria al momento del evento |
+| description | string | Nota editable por el usuario |
+
+**Relacion**: Un usuario puede tener MULTIPLES entries en su historial. La coleccion es plana (no por mes) y se ordena por fecha+tiempo descendente desde el cliente.
+
+---
+
+### 4. users/{userId}/expenses/{expenseId}
+
+| Campo | Tipo | Descripcion |
 |-------|------|-------------|
 | id | string | ID del gasto |
 | userId | string | UID del usuario |
@@ -146,7 +214,7 @@
 
 ---
 
-### 4. users/{userId}/goals/{goalId}
+### 5. users/{userId}/goals/{goalId}
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | id | string | ID de la meta |
@@ -172,7 +240,7 @@
 
 ---
 
-### 5. users/{userId}/months/{monthId}
+### 6. users/{userId}/months/{monthId}
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | id | string | YYYY-MM (ej: 2026-05) |
@@ -186,7 +254,7 @@
 
 ---
 
-### 6. users/{userId}/months/{monthId}/transactions/{transactionId}
+### 7. users/{userId}/months/{monthId}/transactions/{transactionId}
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | id | string | ID de la transacción |
@@ -205,7 +273,7 @@
 
 ---
 
-### 7. users/{userId}/months/{monthId}/budgets/{category}
+### 8. users/{userId}/months/{monthId}/budgets/{category}
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | category | string | Categoría del presupuesto |
@@ -229,7 +297,7 @@
 
 ---
 
-### 8. users/{userId}/months/{monthId}/financialState
+### 9. users/{userId}/months/{monthId}/financialState
 | Campo | Tipo | Descripción |
 |-------|------|-------------|
 | income | number | Ingresos reales del mes |
@@ -258,27 +326,30 @@
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                         ESTRUCTURA JERÁRQUICA                               │
+│                         ESTRUCTURA JERARQUICA                               │
 ├────────────────────────────────────────────────────────────────────────────┤
 │                                                                            │
 │   userId (root)                                                            │
 │       │                                                                     │
 │       ├──► profile (documento)                                             │
 │       │                                                                     │
-│       ├──► incomeSources (subcolección)                                    │
+│       ├──► incomeSources (subcoleccion)                                    │
 │       │      └── documentos individuales                                   │
 │       │                                                                     │
-│       ├──► expenses (subcolección)                                         │
+│       ├──► incomeHistory (subcoleccion)                                    │
+│       │      └── documentos individuales (log permanente)                 │
+│       │                                                                     │
+│       ├──► expenses (subcoleccion)                                         │
 │       │      └── documentos individuales                                   │
 │       │                                                                     │
-│       ├──► goals (subcolección)                                           │
+│       ├──► goals (subcoleccion)                                           │
 │       │      └── documentos individuales                                   │
 │       │                                                                     │
-│       └──► months (subcolección)                                           │
+│       └──► months (subcoleccion)                                           │
 │              └── {monthId} (documento mes)                                 │
 │                   │                                                        │
-│                   ├──► transactions (sub-subcolección)                    │
-│                   ├──► budgets (sub-subcolección)                          │
+│                   ├──► transactions (sub-subcoleccion)                    │
+│                   ├──► budgets (sub-subcoleccion)                          │
 │                   └──► financialState (documento)                         │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
@@ -291,12 +362,13 @@
 ```
 users/{userId}/
 ├── profile/data                 ← 1 documento
-├── incomeSources/              ← N documentos (colección)
-├── expenses/                   ← N documentos (colección)
-├── goals/                      ← N documentos (colección)
-└── months/{monthId}/           ← N documentos (colección)
+├── incomeSources/              ← N documentos (coleccion)
+├── incomeHistory/              ← N documentos (log permanente, plana)
+├── expenses/                   ← N documentos (coleccion)
+├── goals/                      ← N documentos (coleccion)
+└── months/{monthId}/           ← N documentos (coleccion)
     ├── transactions/           ← N documentos
-    ├── budgets/                ← N documentos (uno por categoría)
+    ├── budgets/                ← N documentos (uno por categoria)
     └── financialState          ← 1 documento
 ```
 
@@ -330,12 +402,12 @@ La "relación" es solo la ruta de acceso: `users/{uid}/months/2026-05/transactio
 
 ## 📁 SERVICIOS Y SUS COLECCIONES
 
-| Servicio | Colección Principal | Operaciones |
+| Servicio | Coleccion Principal | Operaciones |
 |----------|---------------------|-------------|
-| AuthService | - | Autenticación |
+| AuthService | - | Autenticacion |
 | FirebaseService | TODAS | CRUD completo |
-| TransactionService | months/{id}/transactions | CRUD + cálculos |
-| IncomeService | incomeSources | CRUD + mensual |
+| TransactionService | months/{id}/transactions | CRUD + calculos |
+| IncomeService | incomeSources, incomeHistory | CRUD + mensual + smart recurrence + markAsReceived |
 | ExpenseService | expenses | CRUD + monthly |
 | BudgetService | months/{id}/budgets | CRUD + summary |
 | GoalService | goals | CRUD + contribuciones |
@@ -351,6 +423,7 @@ La "relación" es solo la ruta de acceso: `users/{uid}/months/2026-05/transactio
 ```javascript
 // Consultas frecuentes
 users/{uid}/incomeSources        where isActive == true
+users/{uid}/incomeHistory        todas (orden client-side por date+time desc)
 users/{uid}/expenses            where status in [pending, partial]
 users/{uid}/goals               where status == active orderBy priority
 users/{uid}/months/{id}/transactions  orderBy date desc
@@ -359,6 +432,6 @@ users/{uid}/months/{id}/budgets       orderBy isPrimordial desc
 
 ---
 
-**Última actualización**: Mayo 2026  
-**Total colecciones**: 8 principales + subcolecciones
-**Total documentos por usuario**: Hasta ~100+ (transacciones, expenses, goals, budgets, incomeSources)
+**Ultima actualizacion**: Mayo 2026  
+**Total colecciones**: 9 principales + subcolecciones
+**Total documentos por usuario**: Hasta ~100+ (transacciones, expenses, goals, budgets, incomeSources, incomeHistory)

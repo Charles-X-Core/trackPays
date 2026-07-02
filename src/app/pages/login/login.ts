@@ -4,11 +4,12 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Auth } from '../../core/services/auth';
 import { PasswordStrengthComponent } from '../../core/components/password-strength/password-strength';
+import { IconComponent } from '../../core/components/icon/icon.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, PasswordStrengthComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, PasswordStrengthComponent, IconComponent],
   templateUrl: './login.html',
   styleUrl: './login.scss'
 })
@@ -34,6 +35,9 @@ export class LoginComponent {
     this.form.get('password')?.valueChanges.subscribe(val => {
       this.passwordValue.set(val || '');
     });
+
+    // Precargar imagen 2.png para cambio instantáneo
+    new Image().src = 'TRACKY/Login/2.png';
   }
 
   toggleMode() {

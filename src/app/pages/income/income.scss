@@ -831,3 +831,251 @@
     opacity: 0.7;
   }
 }
+
+// ── History Movement Log ──
+.history-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--color-surface-hover, rgba(255,255,255,0.05));
+  }
+
+  .history-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .history-info {
+    flex: 1;
+    min-width: 0;
+
+    .history-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+
+      .history-name {
+        font-weight: 500;
+        color: var(--color-text);
+        font-size: 14px;
+      }
+
+      .history-type {
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .history-amount {
+        font-size: 13px;
+        color: var(--color-text-muted);
+        margin-left: auto;
+      }
+    }
+
+    .history-bottom {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .history-date {
+        font-size: 12px;
+        color: var(--color-text-muted);
+        white-space: nowrap;
+      }
+
+      .history-desc-input {
+        flex: 1;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 12px;
+        color: var(--color-text-muted);
+        outline: none;
+        min-width: 0;
+
+        &:focus {
+          border-color: var(--color-border, rgba(255,255,255,0.1));
+          background: rgba(255,255,255,0.03);
+        }
+
+        &::placeholder {
+          color: var(--color-text-muted);
+          opacity: 0.5;
+        }
+      }
+    }
+  }
+}
+
+// ── Disabled buttons during processing ──
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+// ── Field error message ──
+.field-error {
+  font-size: 11px;
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+}
+
+// ── Hide native spinner on number inputs ──
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+// ── Income list scroll (max 5 items) ──
+.income-list {
+  max-height: 340px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+
+    &:hover {
+      background: var(--color-text-muted);
+    }
+  }
+}
+
+// ── Catch-up missed months ──
+.missed-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+  justify-content: center;
+}
+
+.missed-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--color-warning);
+  text-transform: capitalize;
+}
+
+// ── Button Spinner ──
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+
+  &.white {
+    border-color: rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Toast Notification ──
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10000;
+  animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  cursor: pointer;
+  max-width: 90vw;
+
+  &.toast-success {
+    background: #065f46;
+    color: #d1fae5;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  &.toast-error {
+    background: #7f1d1d;
+    color: #fecaca;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  &.toast-info {
+    background: #1e3a5f;
+    color: #bfdbfe;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+
+  .toast-close {
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    transition: opacity 0.2s;
+
+    &:hover { opacity: 1; }
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}

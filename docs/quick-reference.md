@@ -1,4 +1,4 @@
-# 📊 Referencia Rápida - Estructura NoSQL (Firestore)
+# Referencia Rapida - Estructura NoSQL (Firestore)
 
 ## Estructura de Colecciones (No Relacional)
 
@@ -11,24 +11,28 @@ track-pays (Firestore)
     │   └── (datos del usuario: email, edad, empleo, moneda)
     │
     ├── incomeSources/{sourceId}
-    │   └── (fuentes de ingreso: salary, freelance, etc)
-    │       └── 🔗 1 usuario → N fuentes
+    │   └── (fuentes de ingreso con recurrencia inteligente)
+    │       └── 1 usuario → N fuentes
+    │
+    ├── incomeHistory/{entryId}
+    │   └── (log permanente de movimientos: transfer/deletion/reactivation)
+    │       └── 1 usuario → N entries (coleccion plana)
     │
     ├── expenses/{expenseId}
     │   └── (gastos: primordial/no primordial)
-    │       └── 🔗 1 usuario → N gastos
+    │       └── 1 usuario → N gastos
     │
     ├── goals/{goalId}
     │   └── (metas de ahorro)
-    │       └── 🔗 1 usuario → N metas
+    │       └── 1 usuario → N metas
     │
     └── months/{monthId}/          ← Formato: "2026-05"
         │
-        ├── transactions/{txId}     ← 🔗 1 mes → N transacciones
+        ├── transactions/{txId}     ← 1 mes → N transacciones
         │
-        ├── budgets/{category}     ← 🔗 1 mes → 1 por categoría
+        ├── budgets/{category}     ← 1 mes → 1 por categoria
         │
-        └── financialState         ← 🔗 1 mes → 1 documento
+        └── financialState         ← 1 mes → 1 documento
 ```
 
 ---
@@ -42,12 +46,22 @@ track-pays (Firestore)
 - onboardingCompleted, onboardingVersion
 
 ### incomeSources
-- type: salary | freelance | business | afp | rental | dividends | allowance | other
-- name, amount, actualAmount
-- frequency: weekly | biweekly | monthly
-- paymentDayOfMonth
-- isActive, isRecurring
-- deductions (afpPercent, insurancePercent)
+- 8 categorias (IncomeCategory): active, passive, eventual, digital, transfer, state, business, other
+- 28 tipos (IncomeType): salary, fees, commissions, overtime, rental, interest, dividends, royalties, gratification, cts, bonus, settlement, content, affiliates, digital_products, crypto, family, pension_alimony, subsidies, state_pension, business_sales, business_services, business_investment_return, prize, refund, unique_income, unexpected_event, other
+- name, amount, currency (PEN)
+- recurrence (RecurrenceRule): { frequency, startDate, weeklyDays?, biweeklyMode?, biweeklyDates?, monthlyRule?, annualMonth?, annualDay?, endDate? }
+- nextOccurrences (proximas 6 fechas calculadas)
+- paymentStatus: { status: scheduled|upcoming|overdue|received|pending, nextDate, daysUntil, isLate }
+- lastReceivedDate, actualAmount
+- alertBeforeDays (default 3), autoCreateTransaction
+- isActive, deductions (AFP/seguros), notes
+
+### incomeHistory
+- sourceId, sourceName
+- type: transfer | deletion | reactivation
+- amount, date, time, category
+- description (editable por usuario)
+- Coleccion plana (no por mes), ordenada por date+time desc
 
 ### expenses
 - isPrimordial: true | false
@@ -96,18 +110,19 @@ track-pays (Firestore)
 ## Jerarquía de Acceso (NoSQL)
 
 ```
-users/{userId}/                    ← Colección raíz
-  └── incomeSources/               ← Subcolección
-  └── expenses/                   ← Subcolección
-  └── goals/                      ← Subcolección
-  └── months/{monthId}/           ← Subcolección
-       └── transactions/           ← Sub-subcolección
-       └── budgets/               ← Sub-subcolección
-       └── financialState         ← Documento (no subcolección)
+users/{userId}/                    ← Coleccion raiz
+  └── incomeSources/               ← Subcoleccion
+  └── incomeHistory/               ← Subcoleccion (log permanente)
+  └── expenses/                   ← Subcoleccion
+  └── goals/                      ← Subcoleccion
+  └── months/{monthId}/           ← Subcoleccion
+       └── transactions/           ← Sub-subcoleccion
+       └── budgets/               ← Sub-subcoleccion
+       └── financialState         ← Documento (no subcoleccion)
 ```
 
 **Nota**: En NoSQL NO hay "relaciones" como en SQL. 
-Las "relaciones" son solo jerarquía de acceso a subcolecciones.
+Las "relaciones" son solo jerarquia de acceso a subcolecciones.
 
 ---
 
@@ -122,10 +137,49 @@ users/CFWogdbBvUTBLE5qSKLtB1l1wxT2/
 │
 ├── incomeSources/
 │   ├── "sueldo"
+│   │   ├── category: "active"
 │   │   ├── type: "salary"
+│   │   ├── name: "Sueldo Empresa ABC"
 │   │   ├── amount: 2500
-│   │   └── paymentDayOfMonth: 5
+│   │   ├── recurrence: {
+│   │   │     frequency: "monthly",
+│   │   │     startDate: "2026-01-15",
+│   │   │     monthlyRule: { kind: "day", day: 15 }
+│   │   │   }
+│   │   ├── nextOccurrences: ["2026-05-15","2026-06-15","2026-07-15","2026-08-15","2026-09-15","2026-10-15"]
+│   │   ├── paymentStatus: { status: "upcoming", nextDate: "2026-05-15", daysUntil: 2, isLate: false }
+│   │   ├── isActive: true
+│   │   └── alertBeforeDays: 3
+│   │
 │   └── "freelance"
+│       ├── category: "active"
+│       ├── type: "fees"
+│       ├── name: "Freelance Diseño"
+│       ├── amount: 800
+│       ├── recurrence: { frequency: "variable", startDate: "2026-05-01" }
+│       ├── isActive: true
+│       └── lastReceivedDate: "2026-05-10"
+│
+├── incomeHistory/
+│   ├── "entry1"
+│   │   ├── sourceId: "sueldo"
+│   │   ├── sourceName: "Sueldo Empresa ABC"
+│   │   ├── type: "transfer"
+│   │   ├── amount: 2500
+│   │   ├── date: "2026-05-15"
+│   │   ├── time: "10:30"
+│   │   ├── category: "active"
+│   │   └── description: ""
+│   │
+│   └── "entry2"
+│       ├── sourceId: "freelance_old"
+│       ├── sourceName: "Freelance Web"
+│       ├── type: "deletion"
+│       ├── amount: 0
+│       ├── date: "2026-05-10"
+│       ├── time: "15:00"
+│       ├── category: "active"
+│       └── description: "Cliente finalizó contrato"
 │
 ├── expenses/
 │   ├── "alquiler" (category: housing, isPrimordial: true, budgetedAmount: 1200)
@@ -155,4 +209,4 @@ users/CFWogdbBvUTBLE5qSKLtB1l1wxT2/
 
 ---
 
-**Referencia rápida para desarrollo y debugging**
+**Referencia rapida para desarrollo y debugging**

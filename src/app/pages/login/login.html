@@ -1,19 +1,68 @@
 <div class="login-wrapper">
+
+  <!-- ═══════════════════════════════════════════
+       PANEL IZQUIERDO — Hero Section
+       ═══════════════════════════════════════════ -->
+  <section class="login-hero">
+    <div class="login-hero__bg"></div>
+
+    <div class="login-hero__content">
+      <div class="login-hero__left">
+        <div class="login-hero__text">
+          <h2>
+            TOMA EL <span class="hl">CONTROL</span>.<br />
+            CONSTRUYE TU <span class="hl">LIBERTAD</span>.
+          </h2>
+          <p>
+            Track Pays te ayuda a entender, decidir y avanzar hacia tus metas financieras.
+          </p>
+        </div>
+
+        <div class="login-hero__benefits">
+          <div class="benefit-item">
+            <app-icon name="check-circle" [size]="20"></app-icon>
+            <span class="benefit-label">Claridad</span>
+          </div>
+          <div class="benefit-item">
+            <app-icon name="target" [size]="20"></app-icon>
+            <span class="benefit-label">Decisión</span>
+          </div>
+          <div class="benefit-item">
+            <app-icon name="trending-up" [size]="20"></app-icon>
+            <span class="benefit-label">Progreso</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="login-hero__mascota-wrap">
+        <img
+          class="login-hero__mascota"
+          [src]="showPassword() ? 'TRACKY/Login/2.png' : 'TRACKY/Login/1.png'"
+          alt="Tracky — asistente financiero"
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       FONDO DECORATIVO
+       ═══════════════════════════════════════════ -->
   <div class="login-bg">
     <div class="login-bg__gradient"></div>
     <div class="login-bg__pattern"></div>
   </div>
 
+  <!-- ═══════════════════════════════════════════
+       PANEL DERECHO — Login Card
+       ═══════════════════════════════════════════ -->
   <div class="login-card">
-    
+
     <div class="login-header">
-      <div class="logo">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
-          <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
-          <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
-        </svg>
-      </div>
+      <img
+        class="logo-img"
+        src="TRACKY/Login/logo.png"
+        alt="Track Pays"
+      />
       <h1>{{ isRegister() ? 'Crear cuenta' : 'Bienvenido de nuevo' }}</h1>
       <p>{{ isRegister() ? 'Empieza a controlar tus finanzas' : 'Ingresa a tu dashboard financiero' }}</p>
     </div>

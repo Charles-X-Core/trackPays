@@ -196,7 +196,11 @@ export class IncomeService {
   async markAsReceived(sourceId: string, actualAmount?: number): Promise<void> {
     const userId = this.authService.getUserId();
     if (!userId) throw new Error('No autenticado');
-    const today = new Date().toISOString().split('T')[0];
+
+    // Fecha y hora local (no UTC)
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     // Obtener fuente actual para recalcular próximas fechas
     const sources = await this.getAll();
@@ -204,12 +208,14 @@ export class IncomeService {
     if (!source) throw new Error('Fuente no encontrada');
 
     // Clonar recurrencia y avanzar startDate al día DESPUÉS de la fecha pagada
-    // para que la próxima ocurrencia sea la siguiente (no la misma)
     const updatedRecurrence = { ...source.recurrence };
     const paidDate = source.nextOccurrences?.[0] ?? today;
-    const paid = new Date(paidDate);
-    paid.setDate(paid.getDate() + 1); // día siguiente al pago
-    updatedRecurrence.startDate = paid.toISOString().split('T')[0];
+    const paid = new Date(paidDate + 'T12:00:00');
+    paid.setDate(paid.getDate() + 1);
+    const paidYear = paid.getFullYear();
+    const paidMonth = String(paid.getMonth() + 1).padStart(2, '0');
+    const paidDay = String(paid.getDate()).padStart(2, '0');
+    updatedRecurrence.startDate = `${paidYear}-${paidMonth}-${paidDay}`;
 
     // Regenerar ocurrencias con el startDate actualizado
     let nextOccurrences: string[] = [];
@@ -242,6 +248,18 @@ export class IncomeService {
         categoryId: null
       });
     }
+
+    // Agregar entrada al historial permanente
+    await this.firebase.addIncomeHistory(userId, {
+      sourceId: source.id,
+      sourceName: source.name,
+      type: 'transfer',
+      amount: actualAmount || 0,
+      date: today,
+      time,
+      category: source.category,
+      description: ''
+    });
   }
 
   // ── HELPERS ──
@@ -274,16 +292,17 @@ export class IncomeService {
       source.recurrence = { frequency: 'variable', startDate: new Date().toISOString().split('T')[0] };
     }
 
-    // Recalcular si no hay nextOccurrences o están vacíos
-    if (!source.nextOccurrences?.length && source.recurrence.frequency !== 'variable') {
+    // Siempre regenerar nextOccurrences desde la recurrence rule
+    if (source.recurrence.frequency !== 'variable') {
       source.nextOccurrences = generateOccurrences(source.recurrence, 6);
     }
-    if (!source.paymentStatus || !source.paymentStatus.nextDate) {
-      const alertDays = source.alertBeforeDays == null || source.alertBeforeDays < 1 ? 3 : source.alertBeforeDays;
-      source.paymentStatus = calculatePaymentStatus(
-        source.recurrence, source.nextOccurrences || [], source.lastReceivedDate, alertDays
-      );
-    }
+
+    // Siempre recalcular paymentStatus con auto-advance
+    const alertDays = source.alertBeforeDays == null || source.alertBeforeDays < 1 ? 3 : source.alertBeforeDays;
+    source.paymentStatus = calculatePaymentStatus(
+      source.recurrence, source.nextOccurrences || [], source.lastReceivedDate, alertDays
+    );
+
     return source;
   }
 
