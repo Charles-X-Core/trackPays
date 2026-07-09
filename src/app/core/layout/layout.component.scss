@@ -88,7 +88,7 @@
   
   &__logo-img {
     width: 100%;
-    max-height: 32px;
+    max-height: 48px;
     object-fit: contain;
     transition: opacity var(--duration-fast) var(--ease-out);
     
@@ -99,7 +99,7 @@
     }
     
     @media (max-width: 768px) {
-      max-height: 28px;
+      max-height: 40px;
     }
   }
   
