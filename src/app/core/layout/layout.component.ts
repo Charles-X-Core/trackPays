@@ -9,29 +9,23 @@ import { LayoutService } from '../services/layout.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
+    <a href="#main-content" class="skip-nav">Saltar al contenido principal</a>
     <div class="layout" [class.sidebar-open]="layoutService.sidebarOpen()" [class.sidebar-collapsed]="layoutService.sidebarCollapsed()">
       
       <!-- Sidebar -->
-      <aside class="sidebar">
+      <aside class="sidebar" [attr.aria-label]="'Navegación principal'">
         <div class="sidebar__header">
-          <div class="sidebar__logo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
-              <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
-              <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
-            </svg>
-          </div>
-          <span class="sidebar__name" [class.hidden]="layoutService.sidebarCollapsed()">TrackPays</span>
+          <img src="TRACKY/Logo titulo.png" alt="Track Pays" class="sidebar__logo-img" [class.hidden]="layoutService.sidebarCollapsed()">
         </div>
         
         <!-- Toggle button flotante en el borde -->
-        <button class="sidebar-toggle-float" (click)="toggleSidebar()" [title]="layoutService.sidebarCollapsed() ? 'Expandir' : 'Colapsar'">
+        <button class="sidebar-toggle-float" (click)="toggleSidebar()" [attr.aria-label]="layoutService.sidebarCollapsed() ? 'Expandir sidebar' : 'Colapsar sidebar'" [attr.aria-expanded]="!layoutService.sidebarCollapsed()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [style.transform]="layoutService.sidebarCollapsed() ? 'rotate(180deg)' : ''">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
         
-        <nav class="sidebar__nav">
+        <nav class="sidebar__nav" aria-label="Navegación principal">
           <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="7" height="7"/>
@@ -104,11 +98,16 @@ import { LayoutService } from '../services/layout.service';
         </div>
       </aside>
       
+      <!-- Mobile Overlay -->
+      @if (layoutService.sidebarOpen()) {
+        <div class="sidebar-overlay" (click)="closeSidebar()"></div>
+      }
+      
       <!-- Main Content -->
-      <main class="main">
+      <main class="main" id="main-content">
         <!-- Topbar -->
         <header class="topbar">
-          <button class="topbar__menu-btn" (click)="toggleMobileMenu()">
+          <button class="topbar__menu-btn" (click)="toggleMobileMenu()" aria-label="Abrir menú de navegación">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="3" y1="12" x2="21" y2="12"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
@@ -117,7 +116,7 @@ import { LayoutService } from '../services/layout.service';
           </button>
           
           <div class="topbar__user">
-            <span class="topbar__greeting">Hola, {{ userName }}</span>
+            <span class="topbar__greeting">{{ greeting }}, {{ userName }}</span>
             <div class="topbar__avatar">
               @if (userPhoto) {
                 <img [src]="userPhoto" [alt]="userName" class="topbar__avatar-img">
@@ -135,7 +134,7 @@ import { LayoutService } from '../services/layout.service';
       </main>
       
       <!-- Mobile Bottom Nav -->
-      <nav class="bottom-nav">
+      <nav class="bottom-nav" aria-label="Navegación móvil">
         <a routerLink="/dashboard" routerLinkActive="active" class="bottom-nav__item">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7"/>
@@ -155,9 +154,17 @@ import { LayoutService } from '../services/layout.service';
         
         <a routerLink="/transactions" routerLinkActive="active" class="bottom-nav__item">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/>
+            <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1 2 1-2-1 2 1-2-1 2 1-2-1 2 1-2-1Z"/>
           </svg>
           <span>Movim.</span>
+        </a>
+        
+        <a routerLink="/alerts" routerLinkActive="active" class="bottom-nav__item">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+          </svg>
+          <span>Alertas</span>
         </a>
         
         <a routerLink="/goals" routerLinkActive="active" class="bottom-nav__item">
@@ -193,6 +200,17 @@ export class LayoutComponent {
   toggleMobileMenu() {
     this.layoutService.toggleSidebar();
   }
+
+  closeSidebar() {
+    this.layoutService.setSidebarCollapsed(true);
+  }
+  
+  get greeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Buenos días';
+    if (hour < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
   
   get userName(): string {
     const user = this.auth.currentUser();
@@ -200,8 +218,13 @@ export class LayoutComponent {
   }
   
   get userInitials(): string {
-    const name = this.userName;
-    return name.charAt(0).toUpperCase();
+    const user = this.auth.currentUser();
+    const name = user?.displayName ?? user?.email ?? 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
   }
 
   get userPhoto(): string | null {
