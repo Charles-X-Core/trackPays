@@ -1060,6 +1060,7 @@ export class ExpensesComponent implements OnInit {
 
   // Data signals
   allExpenses = signal<Expense[]>([]);
+  allExpensesIncludingInactive = signal<Expense[]>([]);
   dailyTransactions = signal<Transaction[]>([]);
 
   // Tab & Filter state
@@ -1191,7 +1192,7 @@ export class ExpensesComponent implements OnInit {
 
   // Paid history grouped by category
   paidHistory = computed(() => {
-    const paid = this.allExpenses().filter(e => e.status === 'paid');
+    const paid = this.allExpensesIncludingInactive().filter(e => e.status === 'paid');
 
     const groups: Record<string, { category: string; expenses: Expense[]; total: number }> = {};
     for (const exp of paid) {
@@ -1319,8 +1320,10 @@ export class ExpensesComponent implements OnInit {
       const activeExpenses = await this.expenseService.getActive();
       this.allExpenses.set(activeExpenses);
 
-      const allExpenses = await this.expenseService.getAll();
-      const recurringExpenses = allExpenses.filter(e => e.isRecurring && e.frequency === 'monthly');
+      const allExpensesIncludingInactive = await this.expenseService.getAll();
+      this.allExpensesIncludingInactive.set(allExpensesIncludingInactive);
+
+      const recurringExpenses = allExpensesIncludingInactive.filter(e => e.isRecurring && e.frequency === 'monthly');
       if (recurringExpenses.length > 0) {
         await this.expenseService.renewRecurringExpenses(recurringExpenses);
         const refreshed = await this.expenseService.getActive();
