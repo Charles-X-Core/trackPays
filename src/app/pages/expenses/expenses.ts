@@ -1868,7 +1868,6 @@ export class ExpensesComponent implements OnInit {
           dueDayOfMonth: dueDay,
           isSubscription: this.formIsSubscription,
           isVariable: this.formIsVariable,
-          dangerThreshold: dangerThreshold,
           subcategory: this.formSubcategory || '',
           provider: this.formProvider,
           notes: this.formNotes,
@@ -1876,6 +1875,7 @@ export class ExpensesComponent implements OnInit {
         };
         if (availableDate) updateData.availableDate = availableDate;
         if (dueDate) updateData.dueDate = dueDate;
+        if (dangerThreshold != null) updateData.dangerThreshold = dangerThreshold;
         await this.expenseService.update(editing.id, updateData);
       } else {
         const createData: ExpensePayload = {
@@ -1887,7 +1887,6 @@ export class ExpensesComponent implements OnInit {
           subcategory: this.formSubcategory || '',
           isSubscription: this.formIsSubscription,
           isVariable: this.formIsVariable,
-          dangerThreshold: dangerThreshold,
           isRecurring: true,
           frequency: 'monthly',
           provider: this.formProvider,
@@ -1895,6 +1894,7 @@ export class ExpensesComponent implements OnInit {
         };
         if (availableDate) createData.availableDate = availableDate;
         if (dueDate) createData.dueDate = dueDate;
+        if (dangerThreshold != null) createData.dangerThreshold = dangerThreshold;
 
         const result = await this.expenseService.create(createData);
 
