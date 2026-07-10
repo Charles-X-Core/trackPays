@@ -104,7 +104,7 @@ export class ExpenseService {
         frequency: 'monthly',
         isSubscription: expense.isSubscription || false,
         isVariable: expense.isVariable || false,
-        dangerThreshold: expense.dangerThreshold,
+        ...(expense.dangerThreshold != null ? { dangerThreshold: expense.dangerThreshold } : {}),
         ...(expense.metadata ? { metadata: { ...expense.metadata } } : {}),
         notes: expense.notes || '',
         status: newStatus,
@@ -179,6 +179,7 @@ export class ExpenseService {
         frequency: 'monthly',
         isSubscription: exp.isSubscription || false,
         isVariable: exp.isVariable || false,
+        ...(exp.dangerThreshold != null ? { dangerThreshold: exp.dangerThreshold } : {}),
         ...(exp.metadata ? { metadata: { ...exp.metadata } } : {}),
         notes: exp.notes || ''
       });
