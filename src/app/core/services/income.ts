@@ -229,7 +229,8 @@ export class IncomeService {
     });
 
     // Write 2: Create transaction (non-critical — log error but don't block)
-    if (source.autoCreateTransaction && actualAmount && actualAmount > 0) {
+    // Always create transaction when user manually confirms receipt (actualAmount provided)
+    if (actualAmount && actualAmount > 0) {
       try {
         await this.transactionService.create({
           amount: actualAmount,
