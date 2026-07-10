@@ -127,6 +127,9 @@ export class ExpenseService {
 
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    // También calcular mes siguiente para detectar si ya fue creado por markAsPaid
+    const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const nextMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
     const recurring = allExpenses.filter(e =>
       e.isRecurring && e.frequency === 'monthly' && e.isActive
@@ -137,7 +140,7 @@ export class ExpenseService {
       const alreadyRenewed = existing.some(e =>
         e.name === exp.name &&
         e.category === exp.category &&
-        e.startDate?.startsWith(currentMonth) &&
+        (e.startDate?.startsWith(currentMonth) || e.startDate?.startsWith(nextMonth)) &&
         e.isActive === true
       );
       if (alreadyRenewed) continue;
