@@ -1352,7 +1352,7 @@ export class ExpensesComponent implements OnInit {
     let npPaid = 0;
     let npBudgeted = 0;
 
-    this.allExpenses().forEach(expense => {
+    this.allExpensesIncludingInactive().forEach(expense => {
       const amount = expense.actualAmount || expense.budgetedAmount;
       if (expense.isPrimordial) {
         pBudgeted += expense.budgetedAmount;
