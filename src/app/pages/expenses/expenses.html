@@ -2,7 +2,7 @@
   <div class="page-header">
     <div class="header-left">
       <h1>Gastos</h1>
-      <span class="month-label">{{ currentMonth }}</span>
+      <span class="month-label">{{ currentMonth() }}</span>
     </div>
     <button class="btn-add" (click)="openAddModal()">+ Nuevo</button>
   </div>
@@ -439,6 +439,13 @@
             </button>
           </div>
         </div>
+        @if (formType() === 'variable') {
+          <div class="form-group">
+            <label>Umbral de alerta (%)</label>
+            <input type="number" [ngModel]="formDangerThreshold" (ngModelChange)="formDangerThreshold = $event" placeholder="ej: 50" min="10" max="200" class="form-input">
+            <small class="form-hint">Alerta si el gasto supera este % sobre el presupuesto</small>
+          </div>
+        }
         <div class="form-group">
           <label>Día del primer pago</label>
           <input type="number" [ngModel]="formFirstPaymentDay()" (ngModelChange)="onFirstPaymentDayChange($event)" placeholder="Ej: 15" min="1" max="31" class="form-input" [class.input-error]="firstPaymentDayError()">
@@ -528,5 +535,22 @@
         </button>
       </div>
     </div>
+  </div>
+}
+
+<!-- Toast Notification -->
+@if (showToast()) {
+  <div class="toast" [class.toast-success]="toastType() === 'success'" [class.toast-error]="toastType() === 'error'" [class.toast-warning]="toastType() === 'warning'" (click)="closeToast()">
+    @if (toastType() === 'success') {
+      <app-icon name="check-circle" [size]="18"></app-icon>
+    } @else if (toastType() === 'error') {
+      <app-icon name="x-circle" [size]="18"></app-icon>
+    } @else {
+      <app-icon name="alert-triangle" [size]="18"></app-icon>
+    }
+    <span class="toast-message">{{ toastMessage() }}</span>
+    <button class="toast-close" (click)="closeToast(); $event.stopPropagation()">
+      <app-icon name="x" [size]="14"></app-icon>
+    </button>
   </div>
 }

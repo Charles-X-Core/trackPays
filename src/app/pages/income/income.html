@@ -2,7 +2,7 @@
   <div class="page-header">
     <div class="header-left">
       <h1>Ingresos</h1>
-      <span class="month-label">{{ currentMonth }}</span>
+      <span class="month-label">{{ currentMonth() }}</span>
     </div>
     <button class="btn-add" (click)="openAddModal()">+ Nuevo</button>
   </div>
@@ -48,22 +48,35 @@
       }
     </div>
 
+    <div class="search-bar">
+      <app-icon name="search" [size]="16"></app-icon>
+      <input type="text"
+             placeholder="Buscar fuente de ingreso..."
+             [ngModel]="searchQuery()"
+             (ngModelChange)="searchQuery.set($event)" />
+      @if (searchQuery()) {
+        <button class="search-clear" (click)="searchQuery.set('')">
+          <app-icon name="x" [size]="14"></app-icon>
+        </button>
+      }
+    </div>
+
     <!-- Para "Otros" solo mostramos Historial directamente -->
     @if (isOtherCategory()) {
       <div class="list-section">
         <div class="list-header">
           <h3>Historial de Ingresos Puntuales</h3>
-          <span class="list-count">{{ historySources().length }} registros</span>
+          <span class="list-count">{{ searchedHistorySources().length }} registros</span>
         </div>
 
-        @if (historySources().length === 0) {
+        @if (searchedHistorySources().length === 0) {
           <div class="empty-state">
             <p>No hay ingresos puntuales registrados</p>
             <button class="btn-add" (click)="openAddModalForCurrentCategory()">Registrar ingreso puntual</button>
           </div>
         } @else {
           <div class="income-list history-list">
-            @for (source of historySources(); track source.id) {
+            @for (source of searchedHistorySources(); track source.id) {
               <div class="income-row" [class.received]="source.paymentStatus.status === 'received'">
                 <div class="row-icon">
                   <app-icon [name]="getTypeIcon(source.type)" [size]="18"></app-icon>
@@ -103,12 +116,12 @@
         <button class="tab" [class.active]="activeTab() === 'sources'" (click)="activeTab.set('sources')">
           <app-icon name="calendar" [size]="14"></app-icon>
           Fuentes Activas
-          <span class="tab-count">{{ activeSources().length }}</span>
+          <span class="tab-count">{{ searchedSources().length }}</span>
         </button>
         <button class="tab" [class.active]="activeTab() === 'history'" (click)="activeTab.set('history')">
           <app-icon name="history" [size]="14"></app-icon>
           Historial
-          <span class="tab-count">{{ historySources().length }}</span>
+          <span class="tab-count">{{ searchedHistorySources().length }}</span>
         </button>
       </div>
 
@@ -117,17 +130,17 @@
         <div class="list-section">
           <div class="list-header">
             <h3>{{ activeSourcesTitle() }}</h3>
-            <span class="list-count">{{ activeSources().length }} activas</span>
+            <span class="list-count">{{ searchedSources().length }} activas</span>
           </div>
 
-          @if (activeSources().length === 0) {
+          @if (searchedSources().length === 0) {
             <div class="empty-state">
-              <p>No hay fuentes de ingreso activas {{ selectedCategory() !== 'all' ? 'en esta categoría' : '' }}</p>
+              <p>No hay fuentes de ingreso activas {{ selectedCategory() !== 'all' ? 'en esta categoría' : '' }}{{ searchQuery() ? ' para "' + searchQuery() + '"' : '' }}</p>
               <button class="btn-add" (click)="openAddModalForCurrentCategory()">Agregar fuente</button>
             </div>
           } @else {
             <div class="income-list">
-              @for (source of activeSources(); track source.id) {
+              @for (source of searchedSources(); track source.id) {
                 <div class="income-row" [class.received]="source.paymentStatus.status === 'received'">
                   <div class="row-icon">
                     <app-icon [name]="getTypeIcon(source.type)" [size]="18"></app-icon>
@@ -568,7 +581,12 @@
       <div class="confirm-icon" style="background:rgba(245,158,11,0.12);color:var(--color-warning)">
         <app-icon name="alert-triangle" [size]="32"></app-icon>
       </div>
-      <h4 class="confirm-title">Pagos no confirmados</h4>
+      <h4 class="confirm-title">
+        Pagos no confirmados
+        @if (catchUpProgress()) {
+          <span class="catch-up-progress">{{ catchUpProgress() }}</span>
+        }
+      </h4>
       <p class="confirm-message">
         <strong>{{ catchUpSource()?.name }}</strong> tiene
         <strong>{{ catchUpMonths().length }}</strong> pago(s) no confirmado(s):

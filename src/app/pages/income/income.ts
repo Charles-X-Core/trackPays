@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -8,6 +8,7 @@ import { TransactionService } from '../../core/services/transaction';
 import { FirebaseService } from '../../core/services/firebase';
 import { EmailService } from '../../core/services/email';
 import { IconComponent } from '../../core/components/icon/icon.component';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import {
   IncomeSource,
   IncomeSourcePayload,
@@ -16,7 +17,6 @@ import {
   IncomeType,
   IncomeFrequency,
   MonthlyRule,
-  RecurrenceRule,
   INCOME_CATEGORIES,
   getCategoryLabel,
   getTypeLabel,
@@ -25,7 +25,8 @@ import {
   isQuickIncome,
   generateOccurrences,
   calculatePaymentStatus,
-  IncomeHistoryEntry
+  IncomeHistoryEntry,
+  netAmount
 } from '../../core/models/income.model';
 
 @Component({
@@ -36,7 +37,7 @@ import {
   styleUrl: './income.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class IncomeComponent implements OnInit {
+export class IncomeComponent implements OnInit, OnDestroy {
   private incomeService = inject(IncomeService);
   private authService = inject(Auth);
   private transactionService = inject(TransactionService);
@@ -54,10 +55,13 @@ export class IncomeComponent implements OnInit {
   showToast = signal(false);
   toastMessage = signal('');
   toastType = signal<'success' | 'error' | 'info'>('success');
+  toastTimer: ReturnType<typeof setTimeout> | null = null;
   notifiedSources = signal<Set<string>>(new Set());
 
   selectedCategory = signal<IncomeCategory | 'all'>('all');
   activeTab = signal<'sources' | 'history'>('sources');
+  searchQuery = signal('');
+  private descriptionSubject = new Subject<{ entry: IncomeHistoryEntry; description: string }>();
 
   isOtherCategory = computed(() => this.selectedCategory() === 'other');
   categories = INCOME_CATEGORIES;
@@ -75,7 +79,7 @@ export class IncomeComponent implements OnInit {
 
   // Recurrence form
   formFrequency = signal<IncomeFrequency>('monthly');
-  formStartDate = signal<string>(new Date().toISOString().split('T')[0]);
+  formStartDate = signal<string>(this.localToday());
   formWeeklyDay = signal<number>(1);
   formBiweeklyMode = signal<'two_dates' | 'every_15'>('two_dates');
   formBiweeklyDates = signal<[number, number]>([15, 30]);
@@ -86,14 +90,14 @@ export class IncomeComponent implements OnInit {
   formAnnualDay = signal<number>(15);
 
   // Quick mode (other category)
-  formQuickDate = signal<string>(new Date().toISOString().split('T')[0]);
+  formQuickDate = signal<string>(this.localToday());
 
   // Alerts (only for recurrent)
   formAlertDays = signal<number | null>(3);
   formAutoCreate = signal(false);
 
-  now = new Date();
-  currentMonth = this.now.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
+  now = signal(new Date());
+  currentMonth = computed(() => this.now().toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }));
 
   // ── Confirm Alert ──
   showConfirmAlert = signal(false);
@@ -120,6 +124,17 @@ export class IncomeComponent implements OnInit {
   catchUpSource = signal<IncomeSource | null>(null);
   catchUpMonths = signal<string[]>([]);
   skipCatchUpOnLoad = signal(false);
+  catchUpQueue = signal<IncomeSource[]>([]);
+  catchUpConfirmedCount = signal(0);
+
+  catchUpProgress = computed(() => {
+    const queue = this.catchUpQueue();
+    const confirmed = this.catchUpConfirmedCount();
+    const total = queue.length + confirmed;
+    if (total <= 1) return null;
+    const current = confirmed + 1;
+    return `${current} de ${total}`;
+  });
 
   // ── Computed ──
   isQuick = computed(() => isQuickIncome(this.formType()) || this.editingQuick());
@@ -157,12 +172,28 @@ export class IncomeComponent implements OnInit {
     });
   });
 
+  /** Fuentes activas filtradas por búsqueda */
+  searchedSources = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const sources = this.activeSources();
+    if (!query) return sources;
+    return sources.filter(s => s.name.toLowerCase().includes(query));
+  });
+
+  /** Historial de fuentes filtrado por búsqueda */
+  searchedHistorySources = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const sources = this.historySources();
+    if (!query) return sources;
+    return sources.filter(s => s.name.toLowerCase().includes(query));
+  });
+
   /** Historial de movimientos filtrado por categoría */
   filteredHistory = computed(() => {
     const cat = this.selectedCategory();
     const history = this.incomeHistory();
-    if (cat === 'all') return history;
-    return history.filter(entry => entry.category === cat);
+    const filtered = cat === 'all' ? history : history.filter(entry => entry.category === cat);
+    return filtered.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.time || '').localeCompare(a.time || ''));
   });
 
   /** Título dinámico para la sección de fuentes activas según categoría */
@@ -180,15 +211,18 @@ export class IncomeComponent implements OnInit {
   );
 
   totalMonthly = computed(() =>
-    this.incomeSources().filter(s => s.isActive).reduce((sum, s) => sum + (s.amount || 0), 0)
+    this.incomeSources()
+      .filter(s => s.isActive)
+      .reduce((sum, s) => sum + netAmount(s.amount, s.deductions), 0)
   );
 
   totalByCategory = computed(() => {
     const result: Record<string, number> = {};
-    // Solo fuentes activas recurrentes (excluye variable/puntual de "other")
-    this.incomeSources().filter(s => s.isActive && s.recurrence.frequency !== 'variable').forEach(s => {
-      result[s.category] = (result[s.category] || 0) + (s.amount || 0);
-    });
+    this.incomeSources()
+      .filter(s => s.isActive && s.recurrence.frequency !== 'variable')
+      .forEach(s => {
+        result[s.category] = (result[s.category] || 0) + netAmount(s.amount, s.deductions);
+      });
     return result;
   });
 
@@ -205,6 +239,13 @@ export class IncomeComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.descriptionSubject.pipe(
+      debounceTime(500),
+      distinctUntilChanged((prev, curr) => prev.description === curr.description)
+    ).subscribe(({ entry, description }) => {
+      this.saveDescription(entry, description);
+    });
+
     await this.loadData();
   }
 
@@ -219,11 +260,12 @@ export class IncomeComponent implements OnInit {
     this.isLoading.set(true);
     try {
       const userId = this.authService.getUserId();
-      const now = this.now;
+      this.now.set(new Date());
+      const now = this.now();
 
-      const [sources, monthly, txs] = await Promise.all([
-        this.incomeService.getAll(),
-        this.incomeService.getMonthlyIncome(now.getFullYear(), now.getMonth() + 1),
+      const sources = await this.incomeService.getAll();
+      const [monthly, txs] = await Promise.all([
+        this.incomeService.getMonthlyIncome(now.getFullYear(), now.getMonth() + 1, sources),
         this.transactionService.getByMonth(now.getFullYear(), now.getMonth() + 1)
       ]);
 
@@ -261,6 +303,8 @@ export class IncomeComponent implements OnInit {
           s.paymentStatus?.missedCount && s.paymentStatus.missedCount > 0
         );
         if (missedSources.length > 0) {
+          this.catchUpQueue.set(missedSources);
+          this.catchUpConfirmedCount.set(0);
           setTimeout(() => this.openCatchUpAlert(missedSources[0]), 600);
         }
       }
@@ -276,6 +320,9 @@ export class IncomeComponent implements OnInit {
           this.incomeHistory.set([]);
         }
       }
+    } catch (e) {
+      console.error('Error loading income data:', e);
+      this.showErrorToast('Error al cargar datos. Verifica tu conexión.');
     } finally {
       this.isLoading.set(false);
     }
@@ -323,20 +370,16 @@ export class IncomeComponent implements OnInit {
     }
   }
 
-  weekdayLabels: Record<number, string> = {
-    1: 'Lunes', 2: 'Martes', 3: 'Miércoles',
-    4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 0: 'Domingo'
-  };
-
   openAddModal(category?: IncomeCategory) {
     this.editingSource.set(null);
+    this.editingQuick.set(false);
     this.formCategory.set(category || 'active');
     this.onCategoryChange();
     this.formName.set('');
     this.formAmount.set(null);
     this.formNotes.set('');
-    this.formStartDate.set(new Date().toISOString().split('T')[0]);
-    this.formQuickDate.set(new Date().toISOString().split('T')[0]);
+    this.formStartDate.set(this.localToday());
+    this.formQuickDate.set(this.localToday());
     this.formWeeklyDay.set(1);
     this.formBiweeklyMode.set('two_dates');
     this.formBiweeklyDates.set([15, 30]);
@@ -428,7 +471,16 @@ export class IncomeComponent implements OnInit {
 
   async saveSource() {
     if (this.processing()) return;
-    if (!this.formName() || !this.formAmount()) return;
+    const name = this.formName()?.trim();
+    const amount = this.formAmount();
+    if (!name) {
+      this.showErrorToast('El nombre no puede estar vacío');
+      return;
+    }
+    if (!amount || amount <= 0) {
+      this.showErrorToast('El monto debe ser mayor a 0');
+      return;
+    }
     this.processing.set(true);
 
     try {
@@ -457,9 +509,9 @@ export class IncomeComponent implements OnInit {
         const editing = this.editingSource()!;
         if (editing.recurrence.frequency === 'variable' || editing.category === 'other' || editing.lastReceivedDate) {
           await this.incomeService.update(editing.id, {
-            name: this.formName(),
+            name,
             notes: this.formNotes()
-          } as any);
+          } as Partial<IncomeSourcePayload>);
         } else {
           await this.incomeService.update(editing.id, payload);
         }
@@ -474,19 +526,9 @@ export class IncomeComponent implements OnInit {
       await this.loadData();
     } catch (e: any) {
       console.error('Error saving income source:', e);
-      alert('Error al guardar: ' + e.message);
+      this.showErrorToast('Error al guardar: ' + (e.message || 'Error desconocido'));
     } finally {
       this.processing.set(false);
-    }
-  }
-
-  async deleteSource(source: IncomeSource) {
-    if (!confirm(`¿Eliminar "${source.name}"? Se moverá al historial como inactivo.`)) return;
-    try {
-      await this.incomeService.deactivate(source.id);
-      await this.loadData();
-    } catch (e: any) {
-      console.error('Error deleting income source:', e);
     }
   }
 
@@ -497,11 +539,12 @@ export class IncomeComponent implements OnInit {
       if (source.isActive) {
         await this.incomeService.deactivate(source.id);
       } else {
-        await this.incomeService.update(source.id, { isActive: true } as any);
+        await this.incomeService.update(source.id, { isActive: true } as Partial<IncomeSourcePayload>);
       }
       await this.loadData();
     } catch (e: any) {
       console.error('Error toggling income source:', e);
+      this.showErrorToast('Error al cambiar estado: ' + (e.message || 'Error desconocido'));
     } finally {
       this.processing.set(false);
     }
@@ -579,9 +622,19 @@ export class IncomeComponent implements OnInit {
     try {
       await this.incomeService.markAsReceived(source.id, source.amount);
 
-      this.skipCatchUpOnLoad.set(true);
-      await this.loadData();
-      this.showSuccessToast(`✅ ${source.name} catch-up confirmado`);
+      this.catchUpConfirmedCount.update(c => c + 1);
+      const queue = this.catchUpQueue().filter(s => s.id !== source.id);
+      this.catchUpQueue.set(queue);
+
+      if (queue.length > 0) {
+        this.openCatchUpAlert(queue[0]);
+      } else {
+        this.skipCatchUpOnLoad.set(true);
+        await this.loadData();
+        const total = this.catchUpConfirmedCount();
+        this.showSuccessToast(`${total} de ${total} pagos confirmados`);
+        this.catchUpConfirmedCount.set(0);
+      }
     } catch (e: any) {
       console.error('Error confirming catch-up:', e);
       this.showErrorToast('Error al confirmar: ' + (e.message || 'Error desconocido'));
@@ -592,7 +645,23 @@ export class IncomeComponent implements OnInit {
   }
 
   skipCatchUp() {
-    this.closeCatchUpAlert();
+    const source = this.catchUpSource();
+    const queue = this.catchUpQueue().filter(s => s.id !== source?.id);
+    this.catchUpQueue.set(queue);
+
+    if (queue.length > 0) {
+      this.openCatchUpAlert(queue[0]);
+    } else {
+      this.closeCatchUpAlert();
+      const confirmed = this.catchUpConfirmedCount();
+      if (confirmed > 0) {
+        this.skipCatchUpOnLoad.set(true);
+        this.loadData();
+        const total = confirmed;
+        this.showSuccessToast(`${total} de ${total} pagos confirmados`);
+      }
+      this.catchUpConfirmedCount.set(0);
+    }
   }
 
   // ── Delete Alert handlers ──
@@ -635,6 +704,7 @@ export class IncomeComponent implements OnInit {
       await this.loadData();
     } catch (e: any) {
       console.error('Error deleting income source:', e);
+      this.showErrorToast('Error al eliminar: ' + (e.message || 'Error desconocido'));
     } finally {
       this.processing.set(false);
     }
@@ -712,22 +782,23 @@ export class IncomeComponent implements OnInit {
       await this.loadData();
     } catch (e: any) {
       console.error('Error reopening income source:', e);
+      this.showErrorToast('Error al reabrir: ' + (e.message || 'Error desconocido'));
     } finally {
       this.processing.set(false);
     }
   }
 
-  async updateDescription(entry: IncomeHistoryEntry, description: string) {
-    if (this.processing()) return;
-    this.processing.set(true);
+  updateDescription(entry: IncomeHistoryEntry, description: string) {
+    this.descriptionSubject.next({ entry, description });
+  }
+
+  private async saveDescription(entry: IncomeHistoryEntry, description: string) {
     const userId = this.authService.getUserId();
-    if (!userId) { this.processing.set(false); return; }
+    if (!userId) return;
     try {
       await this.firebaseService.updateIncomeHistory(userId, entry.id, { description });
     } catch (e: any) {
       console.error('Error updating history description:', e);
-    } finally {
-      this.processing.set(false);
     }
   }
 
@@ -760,6 +831,11 @@ export class IncomeComponent implements OnInit {
       case 'reactivation': return 'Reactivado';
       default: return type;
     }
+  }
+
+  private localToday(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   formatSol(n: number): string {
@@ -798,42 +874,30 @@ export class IncomeComponent implements OnInit {
 
   // ── Toast ──
   showSuccessToast(message: string) {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
     this.toastMessage.set(message);
     this.toastType.set('success');
     this.showToast.set(true);
-    setTimeout(() => this.showToast.set(false), 3500);
+    this.toastTimer = setTimeout(() => this.showToast.set(false), 3500);
   }
 
   showErrorToast(message: string) {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
     this.toastMessage.set(message);
     this.toastType.set('error');
     this.showToast.set(true);
-    setTimeout(() => this.showToast.set(false), 4500);
+    this.toastTimer = setTimeout(() => this.showToast.set(false), 4500);
   }
 
   closeToast() {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
     this.showToast.set(false);
   }
 
-  // ── Test catch-up email ──
-  async testCatchUpEmail() {
-    console.log('[Income] Sending test catch-up email...');
-    try {
-      const result = await this.emailService.sendCatchUpReminder({
-        sourceName: 'Sueldo Test',
-        missedCount: 3,
-        missedMonths: ['marzo 2026', 'abril 2026', 'mayo 2026'],
-        amount: 5000,
-        currency: 'PEN'
-      });
-      if (result) {
-        this.showSuccessToast('Email de catch-up enviado (prueba)');
-      } else {
-        this.showErrorToast('Error al enviar email de catch-up');
-      }
-    } catch (e: any) {
-      this.showErrorToast('Error: ' + e.message);
-    }
+  ngOnDestroy() {
+    this.descriptionSubject.complete();
+    // Limpiar timers de toasts para evitar memory leaks
+    if (this.toastTimer) clearTimeout(this.toastTimer);
   }
 
   // ── Anticipation days ──
@@ -859,6 +923,9 @@ export class IncomeComponent implements OnInit {
       case 'weekly': return 'Semanal';
       case 'biweekly': return 'Quincenal';
       case 'monthly': return 'Mensual';
+      case 'bimonthly': return 'Bimestral';
+      case 'quarterly': return 'Trimestral';
+      case 'semi_annual': return 'Semestral';
       case 'annual': return 'Anual';
       case 'variable': return 'Variable';
       default: return 'Mensual';

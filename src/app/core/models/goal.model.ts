@@ -97,7 +97,7 @@ export function calculateMonthsToGoal(
 export function calculateProjectedDate(monthsToGoal: number): string {
   const date = new Date();
   date.setMonth(date.getMonth() + monthsToGoal);
-  return date.toISOString().split('T')[0];
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 export function calculateProgress(current: number, target: number): number {

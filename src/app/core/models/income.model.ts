@@ -50,7 +50,7 @@ export interface RecurrenceRule {
   // Mensual y superiores
   monthlyRule?: MonthlyRule;
   // Anual
-  annualMonth?: number;                    // 2 = febrero
+  annualMonth?: number;                    // 0 = enero, 1 = febrero, ... 11 = diciembre
   annualDay?: number;                      // 15
   // Variable / puntual
   endDate?: string | null;                 // Fecha final opcional
@@ -147,6 +147,27 @@ export interface MonthlyIncomeSource {
   daysUntilPayment: number | null;
 }
 
+/** Calcula el total de deducciones (AFP, seguro, 5ta categoría, otras) sobre un monto bruto */
+export function calculateDeductions(amount: number, deductions?: IncomeSource['deductions']): number {
+  if (!deductions) return 0;
+  let total = 0;
+  if (deductions.afpPercent) total += amount * (deductions.afpPercent / 100);
+  if (deductions.insurancePercent) total += amount * (deductions.insurancePercent / 100);
+  if (deductions.fifthCategoryPercent) total += amount * (deductions.fifthCategoryPercent / 100);
+  if (deductions.otherDeductions) {
+    for (const d of deductions.otherDeductions) {
+      if (d.percent) total += amount * (d.percent / 100);
+      else if (d.amount) total += d.amount;
+    }
+  }
+  return total;
+}
+
+/** Retorna el monto neto (bruto - deducciones) */
+export function netAmount(amount: number, deductions?: IncomeSource['deductions']): number {
+  return Math.max(0, amount - calculateDeductions(amount, deductions));
+}
+
 // ============================================
 // MAPAS DE CATEGORÍAS Y TIPOS
 // ============================================
@@ -241,7 +262,7 @@ function firstWeekdayOfMonth(year: number, month: number, weekday: number): Date
 }
 
 /** Calcula la siguiente ocurrencia a partir de una fecha base */
-function nextOccurrence(rule: RecurrenceRule, from: Date): Date | null {
+export function nextOccurrence(rule: RecurrenceRule, from: Date): Date | null {
   const { frequency, monthlyRule, weeklyDays, biweeklyMode, biweeklyDates, annualMonth, annualDay } = rule;
   const result = new Date(from);
 
@@ -331,23 +352,40 @@ function isLeapYear(year: number): boolean {
 }
 
 /** Genera las próximas N ocurrencias */
+function localIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function generateOccurrences(rule: RecurrenceRule | undefined | null, count = 6): string[] {
   if (!rule || rule.frequency === 'variable') return [];
   const results: string[] = [];
   let cursor = new Date(rule.startDate);
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const startDate = new Date(rule.startDate);
+  startDate.setHours(0, 0, 0, 0);
   if (cursor < today) cursor = today;
+
+  if (startDate >= today && localIsoDate(startDate) !== localIsoDate(cursor)) {
+    cursor = new Date(startDate);
+  }
+
+  if (startDate >= today) {
+    results.push(localIsoDate(startDate));
+    cursor = new Date(startDate);
+    cursor.setDate(cursor.getDate() + 1);
+  }
 
   let safety = 0;
   while (results.length < count && safety < 100) {
     safety++;
     const next = nextOccurrence(rule, cursor);
     if (!next) break;
-    // Evitar duplicados
-    const iso = next.toISOString().split('T')[0];
+    const iso = localIsoDate(next);
     if (!results.includes(iso)) results.push(iso);
     cursor = new Date(next);
-    cursor.setDate(cursor.getDate() + 1); // avanzar un día para no quedarse en loop
+    cursor.setDate(cursor.getDate() + 1);
 
     if (rule.endDate && iso > rule.endDate) break;
   }

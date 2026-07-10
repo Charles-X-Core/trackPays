@@ -1132,36 +1132,6 @@ export class ExpensesComponent implements OnInit {
     });
   }
 
-  tabHistory = computed(() => {
-    const isPrimordial = this.activeTab() === 'primordial';
-    const tx = this.dailyTransactions();
-    const grouped: Record<string, { date: string; dayName: string; transactions: Transaction[]; total: number }> = {};
-
-    for (const t of tx) {
-      const catId = t.categoryId || 'other';
-      const matches = isPrimordial
-        ? this.primordialCategoryKeys.includes(catId)
-        : !this.primordialCategoryKeys.includes(catId);
-      if (!matches) continue;
-
-      if (!grouped[t.date]) {
-        const d = new Date(t.date);
-        grouped[t.date] = {
-          date: t.date,
-          dayName: d.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric' }),
-          transactions: [],
-          total: 0
-        };
-      }
-      grouped[t.date].transactions.push(t);
-      grouped[t.date].total += Math.abs(t.amount);
-    }
-
-    return Object.values(grouped).sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-  });
-
   categoryList = computed(() => {
     const pool = this.activeTab() === 'primordial'
       ? this.primordialExpenses()
@@ -1221,9 +1191,7 @@ export class ExpensesComponent implements OnInit {
 
   // Paid history grouped by category
   paidHistory = computed(() => {
-    const cat = this.selectedCategory();
-    let paid = this.allExpenses().filter(e => e.status === 'paid');
-    if (cat) paid = paid.filter(e => e.category === cat);
+    const paid = this.allExpenses().filter(e => e.status === 'paid');
 
     const groups: Record<string, { category: string; expenses: Expense[]; total: number }> = {};
     for (const exp of paid) {
@@ -1248,6 +1216,11 @@ export class ExpensesComponent implements OnInit {
   editWarningTarget = signal<Expense | null>(null);
   showPaidHistory = signal(false);
 
+  // Toast
+  showToast = signal(false);
+  toastMessage = signal('');
+  toastType = signal<'success' | 'error' | 'warning'>('success');
+
   // Form fields
   formName = '';
   formAmount: number | null = null;
@@ -1258,6 +1231,7 @@ export class ExpensesComponent implements OnInit {
   formSubcategory = '';
   formIsSubscription = false;
   formIsVariable = false;
+  formDangerThreshold: number | null = null;
   formProvider = '';
   formNotes = '';
 
@@ -1331,24 +1305,33 @@ export class ExpensesComponent implements OnInit {
     return totals;
   });
 
-  now = new Date();
-  currentMonth = this.now.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
+  now = signal(new Date());
+  currentMonth = computed(() => this.now().toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }));
 
   async ngOnInit() {
     await this.loadData();
   }
 
   async loadData() {
+    this.now.set(new Date());
     this.isLoading.set(true);
     try {
       const activeExpenses = await this.expenseService.getActive();
       this.allExpenses.set(activeExpenses);
 
+      const allExpenses = await this.expenseService.getAll();
+      const recurringExpenses = allExpenses.filter(e => e.isRecurring && e.frequency === 'monthly');
+      if (recurringExpenses.length > 0) {
+        await this.expenseService.renewRecurringExpenses(recurringExpenses);
+        const refreshed = await this.expenseService.getActive();
+        this.allExpenses.set(refreshed);
+      }
+
       this.calculatePrimordialBreakdown();
 
       const currentMonthExpenses = await this.transactionService.getByMonth(
-        this.now.getFullYear(),
-        this.now.getMonth() + 1
+        this.now().getFullYear(),
+        this.now().getMonth() + 1
       );
 
       const expensesOnly = currentMonthExpenses.filter(t => t.type === 'expense');
@@ -1630,6 +1613,14 @@ export class ExpensesComponent implements OnInit {
       const amount = this.confirmActualAmount() ?? expense.budgetedAmount;
       await this.expenseService.markAsPaid(expense.id, amount);
 
+      // Variable spike alert
+      if (expense.isVariable && expense.dangerThreshold && expense.budgetedAmount) {
+        const limit = expense.budgetedAmount * (1 + expense.dangerThreshold / 100);
+        if (amount > limit) {
+          this.showWarningToast(`⚠️ ${expense.name}: S/ ${amount} supera umbral de S/ ${limit.toFixed(2)} (${expense.dangerThreshold}%)`);
+        }
+      }
+
       // Crear transacción negativa para que aparezca en dashboard
       const today = this.toDateString(new Date());
       const tx = await this.transactionService.create({
@@ -1796,6 +1787,7 @@ export class ExpensesComponent implements OnInit {
     this.formSubcategory = expense.subcategory || '';
     this.formIsSubscription = expense.isSubscription || false;
     this.formIsVariable = expense.isVariable || false;
+    this.formDangerThreshold = expense.dangerThreshold || null;
     this.formProvider = expense.provider || '';
     this.formNotes = expense.notes || '';
     // Smart fields
@@ -1856,6 +1848,8 @@ export class ExpensesComponent implements OnInit {
     this.formIsSubscription = type === 'subscription';
     this.formIsVariable = type === 'variable';
 
+    const dangerThreshold = this.formIsVariable && this.formDangerThreshold ? this.formDangerThreshold : undefined;
+
     // Auto-paid para gastos one-time o sin fecha
     const isInstant = type === 'one-time' || !hasDueDate;
     const today = this.toDateString(new Date());
@@ -1876,10 +1870,12 @@ export class ExpensesComponent implements OnInit {
           dueDate: dueDate || undefined,
           isSubscription: this.formIsSubscription,
           isVariable: this.formIsVariable,
+          dangerThreshold: dangerThreshold,
           subcategory: this.formSubcategory || '',
           provider: this.formProvider || undefined,
-          notes: this.formNotes || undefined
-        });
+          notes: this.formNotes || undefined,
+          metadata: metadata || undefined
+        } as any);
       } else {
         const result = await this.expenseService.create({
           name: this.formName,
@@ -1892,6 +1888,7 @@ export class ExpensesComponent implements OnInit {
           subcategory: this.formSubcategory || '',
           isSubscription: this.formIsSubscription,
           isVariable: this.formIsVariable,
+          dangerThreshold: dangerThreshold,
           isRecurring: true,
           frequency: 'monthly',
           provider: this.formProvider || undefined,
@@ -1928,5 +1925,31 @@ export class ExpensesComponent implements OnInit {
     } catch (e) {
       console.error('Error saving expense:', e);
     }
+  }
+
+  // ── Toast ──
+  showSuccessToast(message: string) {
+    this.toastMessage.set(message);
+    this.toastType.set('success');
+    this.showToast.set(true);
+    setTimeout(() => this.showToast.set(false), 3500);
+  }
+
+  showWarningToast(message: string) {
+    this.toastMessage.set(message);
+    this.toastType.set('warning');
+    this.showToast.set(true);
+    setTimeout(() => this.showToast.set(false), 4500);
+  }
+
+  showErrorToast(message: string) {
+    this.toastMessage.set(message);
+    this.toastType.set('error');
+    this.showToast.set(true);
+    setTimeout(() => this.showToast.set(false), 4500);
+  }
+
+  closeToast() {
+    this.showToast.set(false);
   }
 }

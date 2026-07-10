@@ -96,6 +96,7 @@ export interface Expense {
   status: PaymentStatus;
   isRecurring: boolean;
   frequency: ExpenseFrequency;
+  isActive: boolean;
   
   // Transacción asociada (cuando se marca como pagado)
   transactionId?: string;
@@ -186,6 +187,7 @@ export interface ExpensePayload {
   isSubscription?: boolean;
   subscriptionPrice?: number;
   isVariable?: boolean;
+  dangerThreshold?: number;
   notes?: string;
 }
 

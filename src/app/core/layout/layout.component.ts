@@ -15,7 +15,8 @@ import { LayoutService } from '../services/layout.service';
       <!-- Sidebar -->
       <aside class="sidebar" [attr.aria-label]="'Navegación principal'">
         <div class="sidebar__header">
-          <img src="TRACKY/Logo titulo.png" alt="Track Pays" class="sidebar__logo-img" [class.hidden]="layoutService.sidebarCollapsed()">
+          <img src="TRACKY/Logo titulo.png" alt="Track Pays" class="sidebar__logo-img">
+          <img src="TRACKY/Login/logo.png" alt="Track Pays" class="sidebar__logo-icon">
         </div>
         
         <!-- Toggle button flotante en el borde -->

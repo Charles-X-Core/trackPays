@@ -65,6 +65,7 @@ export class ExpenseService {
     if (!userId) throw new Error('No autenticado');
 
     await this.firebase.markExpensePaid(userId, expenseId, amount);
+    await this.firebase.updateExpense(userId, expenseId, { isActive: false } as any);
   }
 
   async cancel(expenseId: string): Promise<void> {
@@ -72,6 +73,70 @@ export class ExpenseService {
     if (!userId) throw new Error('No autenticado');
 
     await this.firebase.cancelExpense(userId, expenseId);
+  }
+
+  async renewRecurringExpenses(allExpenses: Expense[]): Promise<void> {
+    const userId = this.authService.getUserId();
+    if (!userId) throw new Error('No autenticado');
+
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const recurring = allExpenses.filter(e =>
+      e.isRecurring && e.frequency === 'monthly' && e.isActive
+    );
+
+    for (const exp of recurring) {
+      const existing = await this.firebase.getExpenses(userId);
+      const alreadyRenewed = existing.some(e =>
+        e.name === exp.name &&
+        e.category === exp.category &&
+        e.startDate?.startsWith(currentMonth) &&
+        e.isActive === true
+      );
+      if (alreadyRenewed) continue;
+
+      if (exp.status === 'pending' && exp.startDate?.startsWith(currentMonth)) {
+        continue;
+      }
+
+      if (exp.status !== 'paid' && exp.startDate && !exp.startDate.startsWith(currentMonth)) {
+        await this.firebase.updateExpense(userId, exp.id, {
+          status: 'overdue'
+        } as any);
+      }
+
+      const newStartDate = `${currentMonth}-01`;
+      const newDueDate = exp.dueDayOfMonth
+        ? `${currentMonth}-${String(exp.dueDayOfMonth).padStart(2, '0')}`
+        : undefined;
+
+      const newStatus = calculatePaymentStatus(
+        exp.dueDayOfMonth,
+        0,
+        exp.budgetedAmount
+      );
+
+      await this.firebase.createExpense(userId, {
+        isPrimordial: exp.isPrimordial,
+        category: exp.category,
+        subcategory: exp.subcategory || '',
+        name: exp.name,
+        provider: exp.provider || '',
+        description: exp.description || '',
+        budgetedAmount: exp.budgetedAmount,
+        dueDayOfMonth: exp.dueDayOfMonth,
+        availableDate: newStartDate,
+        dueDate: newDueDate,
+        startDate: newStartDate,
+        isRecurring: true,
+        frequency: 'monthly',
+        isSubscription: exp.isSubscription || false,
+        isVariable: exp.isVariable || false,
+        metadata: exp.metadata ? { ...exp.metadata } : undefined,
+        notes: exp.notes || ''
+      });
+    }
   }
 
   async getMonthlySummary(year: number, month: number): Promise<MonthlyExpenseSummary> {

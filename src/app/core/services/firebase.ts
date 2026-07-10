@@ -786,6 +786,17 @@ export class FirebaseService {
           message: `${e.name} cambió de precio: S/ ${e.lastPrice} → S/ ${e.subscriptionPrice}`
         });
       }
+      // Variable spike
+      if (e.isVariable && e.dangerThreshold && e.budgetedAmount && e.actualAmount) {
+        const limit = e.budgetedAmount * (1 + e.dangerThreshold / 100);
+        if (e.actualAmount > limit) {
+          alerts.push({
+            type: 'variable_spike',
+            expenseId: e.id,
+            message: `${e.name}: S/ ${e.actualAmount} supera umbral de S/ ${limit.toFixed(2)} (${e.dangerThreshold}%)`
+          });
+        }
+      }
     });
     
     // By category breakdown

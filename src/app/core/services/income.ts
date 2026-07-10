@@ -10,10 +10,12 @@ import {
   IncomeCategory,
   IncomeType,
   generateOccurrences,
+  nextOccurrence,
   calculatePaymentStatus,
   predictFutureIncome,
   INCOME_TYPES,
-  isQuickIncome
+  isQuickIncome,
+  calculateDeductions
 } from '../models/income.model';
 
 @Injectable({ providedIn: 'root' })
@@ -21,6 +23,11 @@ export class IncomeService {
   private firebase = inject(FirebaseService);
   private authService = inject(Auth);
   private transactionService = inject(TransactionService);
+
+  private localToday(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
 
   // ── CRUD ──
 
@@ -34,10 +41,6 @@ export class IncomeService {
   async getActive(): Promise<IncomeSource[]> {
     const sources = await this.getAll();
     return sources.filter(s => s.isActive);
-  }
-
-  async getByCategory(category: IncomeCategory): Promise<IncomeSource[]> {
-    return (await this.getActive()).filter(s => s.category === category);
   }
 
   async create(payload: IncomeSourcePayload): Promise<IncomeSource> {
@@ -94,18 +97,14 @@ export class IncomeService {
     await this.firebase.updateIncomeSource(userId, sourceId, { isActive: false, updatedAt: new Date().toISOString() });
   }
 
-  async delete(sourceId: string): Promise<void> {
-    await this.deactivate(sourceId);
-  }
-
   // ── CÁLCULOS ──
 
-  async getMonthlyIncome(year: number, month: number): Promise<MonthlyIncome> {
+  async getMonthlyIncome(year: number, month: number, preloadedSources?: IncomeSource[]): Promise<MonthlyIncome> {
     const userId = this.authService.getUserId();
     if (!userId) throw new Error('No autenticado');
 
     const monthId = `${year}-${String(month).padStart(2, '0')}`;
-    const sources = await this.getActive();
+    const sources = (preloadedSources ?? (await this.getActive())).filter(s => s.isActive);
 
     const byCategory: Record<IncomeCategory, number> = {
       active: 0, passive: 0, eventual: 0, digital: 0,
@@ -119,17 +118,22 @@ export class IncomeService {
     for (const source of sources) {
       const budgeted = source.amount || 0;
       const received = source.actualAmount || 0;
-      byCategory[source.category] += budgeted;
-      totalBudgeted += budgeted;
-      totalReceived += received;
+
+      const deductionsTotal = calculateDeductions(budgeted, source.deductions);
+      const netBudgeted = Math.max(0, budgeted - deductionsTotal);
+      const netReceived = received > 0 ? Math.max(0, received - deductionsTotal) : 0;
+
+      byCategory[source.category] += netBudgeted;
+      totalBudgeted += netBudgeted;
+      totalReceived += netReceived;
 
       monthlySources.push({
         sourceId: source.id,
         name: source.name,
         category: source.category,
         type: source.type,
-        budgeted,
-        received,
+        budgeted: netBudgeted,
+        received: netReceived,
         expectedDate: source.paymentStatus?.nextDate || null,
         receivedDate: source.lastReceivedDate || null,
         status: source.paymentStatus?.status || 'pending',
@@ -161,38 +165,6 @@ export class IncomeService {
     };
   }
 
-  async getTotalsByCategory(): Promise<Record<IncomeCategory, { budgeted: number; received: number; count: number }>> {
-    const sources = await this.getActive();
-    const result = {
-      active: { budgeted: 0, received: 0, count: 0 },
-      passive: { budgeted: 0, received: 0, count: 0 },
-      eventual: { budgeted: 0, received: 0, count: 0 },
-      digital: { budgeted: 0, received: 0, count: 0 },
-      transfer: { budgeted: 0, received: 0, count: 0 },
-      state: { budgeted: 0, received: 0, count: 0 },
-      business: { budgeted: 0, received: 0, count: 0 },
-      other: { budgeted: 0, received: 0, count: 0 }
-    };
-    for (const s of sources) {
-      result[s.category].budgeted += s.amount || 0;
-      result[s.category].received += s.actualAmount || 0;
-      result[s.category].count += 1;
-    }
-    return result;
-  }
-
-  async getUpcomingPayments(daysAhead = 3): Promise<IncomeSource[]> {
-    const sources = await this.getActive();
-    return sources.filter(s => {
-      const days = s.paymentStatus?.daysUntil;
-      return days !== null && days >= 0 && days <= daysAhead;
-    });
-  }
-
-  async getOverduePayments(): Promise<IncomeSource[]> {
-    return (await this.getActive()).filter(s => s.paymentStatus?.status === 'overdue');
-  }
-
   async markAsReceived(sourceId: string, actualAmount?: number): Promise<void> {
     const userId = this.authService.getUserId();
     if (!userId) throw new Error('No autenticado');
@@ -207,15 +179,32 @@ export class IncomeService {
     const source = sources.find(s => s.id === sourceId);
     if (!source) throw new Error('Fuente no encontrada');
 
-    // Clonar recurrencia y avanzar startDate al día DESPUÉS de la fecha pagada
+    // Clonar recurrencia y avanzar startDate a la siguiente ocurrencia real
     const updatedRecurrence = { ...source.recurrence };
     const paidDate = source.nextOccurrences?.[0] ?? today;
     const paid = new Date(paidDate + 'T12:00:00');
-    paid.setDate(paid.getDate() + 1);
-    const paidYear = paid.getFullYear();
-    const paidMonth = String(paid.getMonth() + 1).padStart(2, '0');
-    const paidDay = String(paid.getDate()).padStart(2, '0');
-    updatedRecurrence.startDate = `${paidYear}-${paidMonth}-${paidDay}`;
+
+    if (updatedRecurrence.frequency !== 'variable') {
+      const nextAfterPaid = nextOccurrence(updatedRecurrence, paid);
+      if (nextAfterPaid) {
+        const y = nextAfterPaid.getFullYear();
+        const m = String(nextAfterPaid.getMonth() + 1).padStart(2, '0');
+        const d = String(nextAfterPaid.getDate()).padStart(2, '0');
+        updatedRecurrence.startDate = `${y}-${m}-${d}`;
+      } else {
+        paid.setDate(paid.getDate() + 1);
+        const y = paid.getFullYear();
+        const m = String(paid.getMonth() + 1).padStart(2, '0');
+        const d = String(paid.getDate()).padStart(2, '0');
+        updatedRecurrence.startDate = `${y}-${m}-${d}`;
+      }
+    } else {
+      paid.setDate(paid.getDate() + 1);
+      const y = paid.getFullYear();
+      const m = String(paid.getMonth() + 1).padStart(2, '0');
+      const d = String(paid.getDate()).padStart(2, '0');
+      updatedRecurrence.startDate = `${y}-${m}-${d}`;
+    }
 
     // Regenerar ocurrencias con el startDate actualizado
     let nextOccurrences: string[] = [];
@@ -229,8 +218,9 @@ export class IncomeService {
       updatedRecurrence, nextOccurrences, today, alertDays
     );
 
+    // Write 1: Update income source (critical — throws on failure)
     await this.firebase.updateIncomeSource(userId, sourceId, {
-      actualAmount: actualAmount || null,
+      actualAmount: actualAmount ?? null,
       lastReceivedDate: today,
       recurrence: updatedRecurrence,
       nextOccurrences,
@@ -238,28 +228,36 @@ export class IncomeService {
       updatedAt: new Date().toISOString()
     });
 
-    // Crear transacción automáticamente
-    if (actualAmount && actualAmount > 0) {
-      await this.transactionService.create({
-        amount: actualAmount,
-        description: `Ingreso: ${source.name}`,
-        date: today,
-        type: 'income',
-        categoryId: null
-      });
+    // Write 2: Create transaction (non-critical — log error but don't block)
+    if (source.autoCreateTransaction && actualAmount && actualAmount > 0) {
+      try {
+        await this.transactionService.create({
+          amount: actualAmount,
+          description: `Ingreso: ${source.name}`,
+          date: today,
+          type: 'income',
+          categoryId: null
+        });
+      } catch (txError) {
+        console.error('Error creating transaction after income confirmation:', txError);
+      }
     }
 
-    // Agregar entrada al historial permanente
-    await this.firebase.addIncomeHistory(userId, {
-      sourceId: source.id,
-      sourceName: source.name,
-      type: 'transfer',
-      amount: actualAmount || 0,
-      date: today,
-      time,
-      category: source.category,
-      description: ''
-    });
+    // Write 3: Add history entry (non-critical — log error but don't block)
+    try {
+      await this.firebase.addIncomeHistory(userId, {
+        sourceId: source.id,
+        sourceName: source.name,
+        type: 'transfer',
+        amount: actualAmount ?? 0,
+        date: today,
+        time,
+        category: source.category,
+        description: ''
+      });
+    } catch (histError) {
+      console.error('Error adding income history entry:', histError);
+    }
   }
 
   // ── HELPERS ──
@@ -273,7 +271,7 @@ export class IncomeService {
       const old = anySource.paymentSchedule;
       source.recurrence = {
         frequency: old.frequency || 'monthly',
-        startDate: old.firstPaymentDate || new Date().toISOString().split('T')[0]
+        startDate: old.firstPaymentDate || this.localToday()
       };
       // Mapear campos antiguos a nuevos
       if (old.paymentDayOfWeek != null) {
@@ -289,7 +287,7 @@ export class IncomeService {
     }
     // Asegurar que siempre haya recurrence
     if (!source.recurrence) {
-      source.recurrence = { frequency: 'variable', startDate: new Date().toISOString().split('T')[0] };
+      source.recurrence = { frequency: 'variable', startDate: this.localToday() };
     }
 
     // Siempre regenerar nextOccurrences desde la recurrence rule
@@ -310,10 +308,6 @@ export class IncomeService {
     return (Object.keys(INCOME_TYPES) as IncomeType[])
       .filter(t => INCOME_TYPES[t].category === category)
       .map(t => ({ value: t, label: INCOME_TYPES[t].label, icon: INCOME_TYPES[t].icon, isQuick: INCOME_TYPES[t].isQuick }));
-  }
-
-  getSuggestedFrequency(type: IncomeType): string {
-    return INCOME_TYPES[type]?.typicalFrequency || 'monthly';
   }
 
   isQuick(type: IncomeType): boolean {

@@ -221,7 +221,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Quick entry form
   quickAmount      = '';
   quickDescription = '';
-  quickDate        = new Date().toISOString().split('T')[0];
+  quickDate        = this.localToday();
   quickError       = '';
   quickLoading     = false;
 
@@ -592,7 +592,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private resetQuick() {
     this.quickAmount = ''; this.quickDescription = '';
     this.quickError = '';
-    this.quickDate = new Date().toISOString().split('T')[0];
+    this.quickDate = this.localToday();
+  }
+
+  private localToday(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   formatSol(n: number): string {
