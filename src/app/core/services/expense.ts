@@ -43,10 +43,16 @@ export class ExpenseService {
       payload.budgetedAmount
     );
 
+    // Use availableDate as startDate, or default to first day of current month
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const startDate = payload.availableDate || `${currentMonth}-01`;
+
     const data = {
       ...payload,
       status,
-      actualAmount: 0
+      actualAmount: 0,
+      startDate
     };
 
     const result = await this.firebase.createExpense(userId, data);
