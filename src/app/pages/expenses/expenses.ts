@@ -7,7 +7,7 @@ import { ExpenseService } from '../../core/services/expense';
 import { Auth } from '../../core/services/auth';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { Transaction } from '../../core/models/transaction.model';
-import { Expense, SUBCATEGORIES_BY_CATEGORY, PRIMORDIAL_CATEGORIES, NON_PRIMORDIAL_CATEGORIES } from '../../core/models/expense.model';
+import { Expense, ExpensePayload, SUBCATEGORIES_BY_CATEGORY, PRIMORDIAL_CATEGORIES, NON_PRIMORDIAL_CATEGORIES } from '../../core/models/expense.model';
 
 const CATEGORY_COLORS: Record<string, string> = {
   housing: '#166B46',
@@ -1862,27 +1862,26 @@ export class ExpensesComponent implements OnInit {
       const editing = this.editingExpense();
 
       if (editing) {
-        await this.expenseService.update(editing.id, {
+        const updateData: Partial<ExpensePayload> = {
           name: this.formName,
           budgetedAmount: amount,
           dueDayOfMonth: dueDay,
-          availableDate: availableDate || undefined,
-          dueDate: dueDate || undefined,
           isSubscription: this.formIsSubscription,
           isVariable: this.formIsVariable,
           dangerThreshold: dangerThreshold,
           subcategory: this.formSubcategory || '',
-          provider: this.formProvider || undefined,
-          notes: this.formNotes || undefined,
-          metadata: metadata || undefined
-        } as any);
+          provider: this.formProvider,
+          notes: this.formNotes,
+          metadata
+        };
+        if (availableDate) updateData.availableDate = availableDate;
+        if (dueDate) updateData.dueDate = dueDate;
+        await this.expenseService.update(editing.id, updateData);
       } else {
-        const result = await this.expenseService.create({
+        const createData: ExpensePayload = {
           name: this.formName,
           budgetedAmount: amount,
           dueDayOfMonth: dueDay,
-          availableDate: availableDate || undefined,
-          dueDate: dueDate || undefined,
           isPrimordial: this.formIsPrimordial(),
           category: this.formCategory as any,
           subcategory: this.formSubcategory || '',
@@ -1891,9 +1890,13 @@ export class ExpensesComponent implements OnInit {
           dangerThreshold: dangerThreshold,
           isRecurring: true,
           frequency: 'monthly',
-          provider: this.formProvider || undefined,
-          notes: this.formNotes || undefined
-        });
+          provider: this.formProvider,
+          notes: this.formNotes
+        };
+        if (availableDate) createData.availableDate = availableDate;
+        if (dueDate) createData.dueDate = dueDate;
+
+        const result = await this.expenseService.create(createData);
 
         // Auto-paid instant expense
         if (isInstant && result?.id) {

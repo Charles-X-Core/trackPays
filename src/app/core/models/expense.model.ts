@@ -188,6 +188,7 @@ export interface ExpensePayload {
   subscriptionPrice?: number;
   isVariable?: boolean;
   dangerThreshold?: number;
+  metadata?: Record<string, any>;
   notes?: string;
 }
 
