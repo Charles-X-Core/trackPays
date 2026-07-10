@@ -64,8 +64,54 @@ export class ExpenseService {
     const userId = this.authService.getUserId();
     if (!userId) throw new Error('No autenticado');
 
+    // Obtener el gasto antes de marcarlo para saber si es recurrente
+    const allExpenses = await this.firebase.getExpenses(userId);
+    const expense = allExpenses.find(e => e.id === expenseId);
+
     await this.firebase.markExpensePaid(userId, expenseId, amount);
     await this.firebase.updateExpense(userId, expenseId, { isActive: false } as any);
+
+    // Si es gasto recurrente mensual, crear la siguiente ocurrencia para el mes próximo
+    if (expense && expense.isRecurring && expense.frequency === 'monthly') {
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const nextMonthStr = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}`;
+
+      const newStartDate = `${nextMonthStr}-01`;
+      const newDueDate = expense.dueDayOfMonth
+        ? `${nextMonthStr}-${String(expense.dueDayOfMonth).padStart(2, '0')}`
+        : undefined;
+
+      const newStatus = calculatePaymentStatus(
+        expense.dueDayOfMonth,
+        0,
+        expense.budgetedAmount
+      );
+
+      await this.firebase.createExpense(userId, {
+        isPrimordial: expense.isPrimordial,
+        category: expense.category,
+        subcategory: expense.subcategory || '',
+        name: expense.name,
+        provider: expense.provider || '',
+        description: expense.description || '',
+        budgetedAmount: expense.budgetedAmount,
+        dueDayOfMonth: expense.dueDayOfMonth,
+        availableDate: newStartDate,
+        dueDate: newDueDate,
+        startDate: newStartDate,
+        isRecurring: true,
+        frequency: 'monthly',
+        isSubscription: expense.isSubscription || false,
+        isVariable: expense.isVariable || false,
+        dangerThreshold: expense.dangerThreshold,
+        metadata: expense.metadata ? { ...expense.metadata } : undefined,
+        notes: expense.notes || '',
+        status: newStatus,
+        actualAmount: 0,
+        isActive: true
+      });
+    }
   }
 
   async cancel(expenseId: string): Promise<void> {
