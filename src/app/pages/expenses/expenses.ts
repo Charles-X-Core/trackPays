@@ -1814,6 +1814,7 @@ export class ExpensesComponent implements OnInit {
   }
 
   async saveExpense() {
+    if (this.processing()) return;
     if (!this.formName || this.formAmount == null) return;
     if (!this.formSubcategory) {
       this.subcategoryError.set('Selecciona una subcategoría');
